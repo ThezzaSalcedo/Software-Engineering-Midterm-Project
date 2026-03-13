@@ -9,7 +9,7 @@ import { useAuth as useFirebaseAuth, useFirestore, useUser, setDocumentNonBlocki
 export type UserRole = "Admin" | "User";
 
 export interface UserProfile {
-  id: string; // Changed from uid to id to match security rules and backend.json
+  id: string;
   email: string;
   displayName: string;
   photoURL?: string;
@@ -62,31 +62,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, isUserLoading, db]);
 
   const login = async () => {
-    try {
-      const googleProvider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, googleProvider);
-      const userRef = doc(db, "userProfiles", result.user.uid);
-      const userDoc = await getDoc(userRef);
+    const googleProvider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, googleProvider);
+    const email = result.user.email || "";
+
+    // Restrict login to New Era University institutional domain
+    if (!email.endsWith("@neu.edu.ph")) {
+      await signOut(auth);
+      throw new Error("Access denied. Please use your @neu.edu.ph institutional email.");
+    }
+
+    const userRef = doc(db, "userProfiles", result.user.uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      const newProfile: UserProfile = {
+        id: result.user.uid,
+        email: email,
+        displayName: result.user.displayName || "User",
+        photoURL: result.user.photoURL || "",
+        role: "User",
+        isSetupComplete: false,
+        createdAt: new Date().toISOString(),
+      };
       
-      if (!userDoc.exists()) {
-        const newProfile: UserProfile = {
-          id: result.user.uid, // Using id to match security rules requirement: request.resource.data.id == userId
-          email: result.user.email || "",
-          displayName: result.user.displayName || "User",
-          photoURL: result.user.photoURL || "",
-          role: "User",
-          isSetupComplete: false,
-          createdAt: new Date().toISOString(),
-        };
-        
-        // Use non-blocking update as per guidelines
-        setDocumentNonBlocking(userRef, newProfile, { merge: true });
-        setProfile(newProfile);
-      } else {
-        setProfile(userDoc.data() as UserProfile);
-      }
-    } catch (error) {
-      // Errors are handled by the global listener
+      setDocumentNonBlocking(userRef, newProfile, { merge: true });
+      setProfile(newProfile);
+    } else {
+      setProfile(userDoc.data() as UserProfile);
     }
   };
 
@@ -100,7 +103,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...profile, ...data } as UserProfile;
     const userRef = doc(db, "userProfiles", user.uid);
     
-    // Use non-blocking update as per guidelines
     setDocumentNonBlocking(userRef, updated, { merge: true });
     setProfile(updated);
   };

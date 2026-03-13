@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -33,8 +34,12 @@ export default function DashboardPage() {
     
     const visitsCollection = collection(db, "userProfiles", profile.id, "libraryVisits");
     
+    // Denormalizing profile data into the visit record for administrative logs
     addDocumentNonBlocking(visitsCollection, {
       userId: profile.id,
+      displayName: profile.displayName,
+      email: profile.email,
+      collegeOrOffice: profile.collegeOrOffice,
       reasonForVisit: reason,
       visitDateTime: new Date().toISOString(),
     });
@@ -55,14 +60,14 @@ export default function DashboardPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b bg-white/50 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen flex flex-col bg-muted/20">
+      <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <h1 className="font-bold text-xl tracking-tight text-primary">CampusConnect</h1>
+            <h1 className="font-bold text-xl tracking-tight text-primary">NEU CampusConnect</h1>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex flex-col items-end">
@@ -83,7 +88,7 @@ export default function DashboardPage() {
       <main className="flex-1 max-w-4xl mx-auto w-full p-4 py-12 space-y-8">
         <div className="space-y-2">
           <h2 className="text-3xl font-bold">Welcome back!</h2>
-          <p className="text-muted-foreground">Log your library visit by specifying your purpose today.</p>
+          <p className="text-muted-foreground">Please record your library visit details below.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -97,8 +102,8 @@ export default function DashboardPage() {
                 <Label htmlFor="reason">Detailed Purpose</Label>
                 <Textarea 
                   id="reason" 
-                  placeholder="Example: Researching for Thesis, Using Lab Facilities, Individual Study..." 
-                  className="min-h-[150px] text-base resize-none"
+                  placeholder="Example: Thesis research, computer lab use, individual study..." 
+                  className="min-h-[150px] text-base resize-none focus-visible:ring-primary"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
@@ -126,7 +131,7 @@ export default function DashboardPage() {
                </CardHeader>
                <CardContent>
                  <p className="text-lg font-bold">Main University Library</p>
-                 <p className="text-xs text-muted-foreground">Central Campus - Tower 2</p>
+                 <p className="text-xs text-muted-foreground">New Era University - Main Campus</p>
                </CardContent>
             </Card>
 
