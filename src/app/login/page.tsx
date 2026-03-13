@@ -1,28 +1,43 @@
 
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { LogIn, ShieldCheck } from "lucide-react";
-import Image from "next/image";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export default function LoginPage() {
   const { login, user, loading } = useAuth();
   const router = useRouter();
 
-  if (user && !loading) {
-    router.push("/");
-    return null;
-  }
+  useEffect(() => {
+    if (user && !loading) {
+      router.push("/");
+    }
+  }, [user, loading, router]);
 
   const handleLogin = async () => {
     await login();
   };
 
+  const bgImage = PlaceHolderImages.find(img => img.id === "login-bg")?.imageUrl || "";
+
+  if (loading || (user && !loading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground animate-pulse">Checking authentication...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-[url('https://picsum.photos/seed/neu-bg/1920/1080')] bg-cover bg-center">
+    <div 
+      className="flex items-center justify-center min-h-screen p-4 bg-cover bg-center"
+      style={{ backgroundImage: `url('${bgImage}')` }}
+    >
       <div className="absolute inset-0 bg-primary/10 backdrop-blur-[2px]" />
       
       <Card className="w-full max-w-md relative z-10 shadow-2xl border-none">

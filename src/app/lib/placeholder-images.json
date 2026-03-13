@@ -12,6 +12,12 @@
       "description": "Institutional placeholder logo",
       "imageUrl": "https://picsum.photos/seed/neu-logo/200/200",
       "imageHint": "university emblem"
+    },
+    {
+      "id": "login-bg",
+      "description": "Campus background for login page",
+      "imageUrl": "https://picsum.photos/seed/neu-bg/1920/1080",
+      "imageHint": "university campus"
     }
   ]
 }
