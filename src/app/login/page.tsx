@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -52,7 +51,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-sm text-center text-muted-foreground px-4">
-            Access to the library visitor system requires a verified institutional account.
+            Access to the library visitor system requires a verified New Era University institutional account.
           </p>
           <Button 
             onClick={handleLogin} 
@@ -65,7 +64,7 @@ export default function LoginPage() {
         <CardFooter className="flex flex-col items-center gap-2 border-t pt-6 bg-muted/30">
           <p className="text-xs text-muted-foreground">Authorized Access Only</p>
           <div className="flex gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-             <span className="text-[10px] font-bold tracking-widest uppercase">Northeastern University</span>
+             <span className="text-[10px] font-bold tracking-widest uppercase">New Era University</span>
           </div>
         </CardFooter>
       </Card>

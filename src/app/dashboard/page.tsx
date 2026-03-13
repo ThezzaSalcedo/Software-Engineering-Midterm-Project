@@ -1,7 +1,7 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,17 +14,23 @@ import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 export default function DashboardPage() {
-  const { profile, logout } = useAuth();
+  const { user, profile, logout, loading } = useAuth();
   const db = useFirestore();
+  const router = useRouter();
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
 
   const handleSubmit = async () => {
     if (!reason.trim() || !profile) return;
     setIsSubmitting(true);
     
-    // As per backend.json, library visits are nested under userProfiles/{userId}/libraryVisits
     const visitsCollection = collection(db, "userProfiles", profile.id, "libraryVisits");
     
     addDocumentNonBlocking(visitsCollection, {
@@ -36,10 +42,17 @@ export default function DashboardPage() {
     setReason("");
     toast({
       title: "Check-in Successful",
-      description: "Welcome to the NEU Library!",
+      description: "Welcome to the New Era University Library!",
     });
     setIsSubmitting(false);
   };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
+  if (loading || !user) return null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -60,7 +73,7 @@ export default function DashboardPage() {
               <AvatarImage src={profile?.photoURL} />
               <AvatarFallback>{profile?.displayName?.[0]}</AvatarFallback>
             </Avatar>
-            <Button variant="ghost" size="icon" onClick={logout} className="text-muted-foreground hover:text-destructive">
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
@@ -141,7 +154,7 @@ export default function DashboardPage() {
       
       <footer className="border-t py-6 bg-white/50 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Northeastern University Library System
+          &copy; {new Date().getFullYear()} New Era University Library System
         </div>
       </footer>
     </div>

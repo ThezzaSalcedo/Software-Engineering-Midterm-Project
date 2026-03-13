@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { collection, query, orderBy, onSnapshot, limit } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useFirestore } from "@/firebase";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,42 +17,55 @@ interface VisitRecord {
   displayName: string;
   email: string;
   collegeOrOffice: string;
-  reason: string;
-  timestamp: string;
+  reasonForVisit: string;
+  visitDateTime: string;
 }
 
 export default function AdminPage() {
-  const { profile, logout, loading: authLoading } = useAuth();
+  const { user, profile, logout, loading: authLoading } = useAuth();
   const [visits, setVisits] = useState<VisitRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const db = useFirestore();
 
   useEffect(() => {
     if (!authLoading) {
-      if (!profile || profile.role !== "Admin") {
+      if (!user) {
+        router.push("/login");
+      } else if (!profile || profile.role !== "Admin") {
         router.push("/dashboard");
       }
     }
-  }, [profile, authLoading, router]);
+  }, [user, profile, authLoading, router]);
 
   useEffect(() => {
-    const q = query(collection(db, "visits"), orderBy("timestamp", "desc"), limit(50));
+    // Note: This query might require a composite index if filtered or ordered across collections.
+    // In a flat structure, we'd need a global 'visits' collection.
+    // For this prototype, we'll listen to a top-level visits if it exists or use a placeholder.
+    const q = query(collection(db, "visits"), orderBy("visitDateTime", "desc"), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const records = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as VisitRecord[];
       setVisits(records);
+    }, (error) => {
+      console.error("Admin listener error:", error);
     });
     return unsubscribe;
-  }, []);
+  }, [db]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   const filteredVisits = visits.filter(v => 
     v.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.collegeOrOffice.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (authLoading || profile?.role !== "Admin") return null;
+  if (authLoading || !user || profile?.role !== "Admin") return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,9 +73,9 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-8 h-8" />
-            <h1 className="text-2xl font-bold">Admin Console</h1>
+            <h1 className="text-2xl font-bold">New Era University - Admin Console</h1>
           </div>
-          <Button variant="secondary" onClick={logout} className="gap-2">
+          <Button variant="secondary" onClick={handleLogout} className="gap-2">
             <LogOut className="w-4 h-4" />
             Sign Out
           </Button>
@@ -132,9 +144,9 @@ export default function AdminPage() {
                           </div>
                         </TableCell>
                         <TableCell>{visit.collegeOrOffice}</TableCell>
-                        <TableCell className="max-w-xs truncate">{visit.reason}</TableCell>
+                        <TableCell className="max-w-xs truncate">{visit.reasonForVisit}</TableCell>
                         <TableCell className="text-right">
-                          {format(new Date(visit.timestamp), "MMM d, h:mm a")}
+                          {visit.visitDateTime ? format(new Date(visit.visitDateTime), "MMM d, h:mm a") : "N/A"}
                         </TableCell>
                       </TableRow>
                     ))
