@@ -14,9 +14,10 @@ export default function Home() {
     if (!loading) {
       if (!user) {
         router.push("/login");
-      } else if (profile && !profile.isSetupComplete) {
+      } else if (!profile || !profile.isSetupComplete) {
+        // If profile doesn't exist yet or is incomplete, force onboarding
         router.push("/onboarding");
-      } else if (profile && profile.role === "Admin") {
+      } else if (profile.role === "Admin") {
         router.push("/admin");
       } else {
         router.push("/dashboard");

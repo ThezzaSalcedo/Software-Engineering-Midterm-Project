@@ -1,14 +1,15 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { useAuth as useFirebaseAuth, useFirestore, useUser } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { useAuth as useFirebaseAuth, useFirestore, useUser, setDocumentNonBlocking } from "@/firebase";
 
 export type UserRole = "Admin" | "User";
 
 export interface UserProfile {
-  uid: string;
+  id: string; // Changed from uid to id to match security rules and backend.json
   email: string;
   displayName: string;
   photoURL?: string;
@@ -39,11 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function fetchProfile() {
       if (user) {
-        // Check standard userProfiles collection
-        const userDoc = await getDoc(doc(db, "userProfiles", user.uid));
-        if (userDoc.exists()) {
-          setProfile(userDoc.data() as UserProfile);
-        } else {
+        try {
+          const userDoc = await getDoc(doc(db, "userProfiles", user.uid));
+          if (userDoc.exists()) {
+            setProfile(userDoc.data() as UserProfile);
+          } else {
+            setProfile(null);
+          }
+        } catch (error) {
           setProfile(null);
         }
       } else {
@@ -61,11 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const googleProvider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, googleProvider);
-      const userDoc = await getDoc(doc(db, "userProfiles", result.user.uid));
+      const userRef = doc(db, "userProfiles", result.user.uid);
+      const userDoc = await getDoc(userRef);
       
       if (!userDoc.exists()) {
         const newProfile: UserProfile = {
-          uid: result.user.uid,
+          id: result.user.uid, // Using id to match security rules requirement: request.resource.data.id == userId
           email: result.user.email || "",
           displayName: result.user.displayName || "User",
           photoURL: result.user.photoURL || "",
@@ -73,8 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isSetupComplete: false,
           createdAt: new Date().toISOString(),
         };
-        // Use userProfiles path as per backend.json
-        await setDoc(doc(db, "userProfiles", result.user.uid), newProfile);
+        
+        // Use non-blocking update as per guidelines
+        setDocumentNonBlocking(userRef, newProfile, { merge: true });
         setProfile(newProfile);
       } else {
         setProfile(userDoc.data() as UserProfile);
@@ -86,12 +92,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await signOut(auth);
+    setProfile(null);
   };
 
   const updateProfile = async (data: Partial<UserProfile>) => {
-    if (!user) return;
+    if (!user || !profile) return;
     const updated = { ...profile, ...data } as UserProfile;
-    await setDoc(doc(db, "userProfiles", user.uid), updated, { merge: true });
+    const userRef = doc(db, "userProfiles", user.uid);
+    
+    // Use non-blocking update as per guidelines
+    setDocumentNonBlocking(userRef, updated, { merge: true });
     setProfile(updated);
   };
 

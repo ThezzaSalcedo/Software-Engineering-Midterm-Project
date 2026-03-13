@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, BookOpen, Clock, CheckCircle2, MapPin } from "lucide-react";
-import { doc, collection } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,10 +25,10 @@ export default function DashboardPage() {
     setIsSubmitting(true);
     
     // As per backend.json, library visits are nested under userProfiles/{userId}/libraryVisits
-    const visitsCollection = collection(db, "userProfiles", profile.uid, "libraryVisits");
+    const visitsCollection = collection(db, "userProfiles", profile.id, "libraryVisits");
     
     addDocumentNonBlocking(visitsCollection, {
-      userId: profile.uid,
+      userId: profile.id,
       reasonForVisit: reason,
       visitDateTime: new Date().toISOString(),
     });
