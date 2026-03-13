@@ -1,10 +1,9 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User, signInWithPopup, signOut } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db, googleProvider } from "@/lib/firebase";
+import { useAuth as useFirebaseAuth, useFirestore, useUser } from "@/firebase";
 
 export type UserRole = "Admin" | "User";
 
@@ -20,7 +19,7 @@ export interface UserProfile {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: any;
   profile: UserProfile | null;
   loading: boolean;
   login: () => Promise<void>;
@@ -31,33 +30,38 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const auth = useFirebaseAuth();
+  const db = useFirestore();
+  const { user, isUserLoading } = useUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+    async function fetchProfile() {
+      if (user) {
+        // Check standard userProfiles collection
+        const userDoc = await getDoc(doc(db, "userProfiles", user.uid));
         if (userDoc.exists()) {
           setProfile(userDoc.data() as UserProfile);
         } else {
-          // New user logic handled in protected route or onboarding
           setProfile(null);
         }
       } else {
         setProfile(null);
       }
       setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
+    }
+    
+    if (!isUserLoading) {
+      fetchProfile();
+    }
+  }, [user, isUserLoading, db]);
 
   const login = async () => {
     try {
+      const googleProvider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, googleProvider);
-      const userDoc = await getDoc(doc(db, "users", result.user.uid));
+      const userDoc = await getDoc(doc(db, "userProfiles", result.user.uid));
       
       if (!userDoc.exists()) {
         const newProfile: UserProfile = {
@@ -65,17 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: result.user.email || "",
           displayName: result.user.displayName || "User",
           photoURL: result.user.photoURL || "",
-          role: "User", // Default role
+          role: "User",
           isSetupComplete: false,
           createdAt: new Date().toISOString(),
         };
-        await setDoc(doc(db, "users", result.user.uid), newProfile);
+        // Use userProfiles path as per backend.json
+        await setDoc(doc(db, "userProfiles", result.user.uid), newProfile);
         setProfile(newProfile);
       } else {
         setProfile(userDoc.data() as UserProfile);
       }
     } catch (error) {
-      console.error("Login Error:", error);
+      // Errors are handled by the global listener
     }
   };
 
@@ -86,12 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (data: Partial<UserProfile>) => {
     if (!user) return;
     const updated = { ...profile, ...data } as UserProfile;
-    await setDoc(doc(db, "users", user.uid), updated, { merge: true });
+    await setDoc(doc(db, "userProfiles", user.uid), updated, { merge: true });
     setProfile(updated);
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading: loading || isUserLoading, login, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

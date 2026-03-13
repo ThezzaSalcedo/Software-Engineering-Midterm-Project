@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -9,42 +8,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, BookOpen, Clock, CheckCircle2, MapPin } from "lucide-react";
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, collection } from "firebase/firestore";
+import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 export default function DashboardPage() {
   const { profile, logout } = useAuth();
+  const db = useFirestore();
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async () => {
-    if (!reason.trim()) return;
+    if (!reason.trim() || !profile) return;
     setIsSubmitting(true);
-    try {
-      await addDoc(collection(db, "visits"), {
-        uid: profile?.uid,
-        email: profile?.email,
-        displayName: profile?.displayName,
-        collegeOrOffice: profile?.collegeOrOffice,
-        reason: reason,
-        timestamp: new Date().toISOString(),
-      });
-      setReason("");
-      toast({
-        title: "Check-in Successful",
-        description: "Welcome to the NEU Library!",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Submission Error",
-        description: "Could not record your visit. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    
+    // As per backend.json, library visits are nested under userProfiles/{userId}/libraryVisits
+    const visitsCollection = collection(db, "userProfiles", profile.uid, "libraryVisits");
+    
+    addDocumentNonBlocking(visitsCollection, {
+      userId: profile.uid,
+      reasonForVisit: reason,
+      visitDateTime: new Date().toISOString(),
+    });
+
+    setReason("");
+    toast({
+      title: "Check-in Successful",
+      description: "Welcome to the NEU Library!",
+    });
+    setIsSubmitting(false);
   };
 
   return (
