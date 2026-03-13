@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "library-hero",
+      "description": "A modern academic library with students studying",
+      "imageUrl": "https://picsum.photos/seed/neu-library/1200/800",
+      "imageHint": "university library"
+    },
+    {
+      "id": "neu-logo",
+      "description": "Institutional placeholder logo",
+      "imageUrl": "https://picsum.photos/seed/neu-logo/200/200",
+      "imageHint": "university emblem"
+    }
+  ]
+}
