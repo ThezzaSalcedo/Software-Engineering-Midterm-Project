@@ -82,8 +82,8 @@ export default function LoginPage() {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xl md:text-2xl font-black tracking-tighter text-[#1A237E]">NEU LIBRARY</span>
-              <span className="text-xl md:text-2xl font-black tracking-tighter text-accent">CONNECT</span>
+              <span className="text-xl md:text-2xl font-black tracking-tighter text-[#1A237E]">NEW ERA UNIVERSITY</span>
+              <span className="text-xl md:text-2xl font-black tracking-tighter text-accent">LIBRARY</span>
             </div>
             <p className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase">Official University Portal</p>
           </div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
         <div className="space-y-4 md:space-y-6">
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] md:leading-[0.9] text-[#1A237E]">
             WELCOME TO <br />
-            <span className="italic">NEU LIBRARY.</span>
+            <span className="italic">NEW ERA UNIVERSITY LIBRARY.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-lg leading-relaxed">
             Secure digital access for New Era University members. Explore resources, research databases, and study areas.

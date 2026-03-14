@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'New Era University CampusConnect',
-  description: 'Library Visitor Management System',
+  title: 'New Era University Library',
+  description: 'Visitor Management System for New Era University',
 };
 
 export default function RootLayout({
