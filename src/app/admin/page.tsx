@@ -216,7 +216,7 @@ export default function AdminPage() {
     const todayStudents = todayVisits.filter(v => v.userType === 'Student').length;
     const todayFaculty = todayVisits.filter(v => v.userType === 'Faculty').length;
 
-    // Summary Section
+    // 1. Daily Summary Section
     doc.setFontSize(16);
     doc.setTextColor(0);
     doc.text("Daily Summary", 14, 45);
@@ -230,10 +230,31 @@ export default function AdminPage() {
         ['Professor (Faculty) Count', todayFaculty.toString()],
       ],
       theme: 'striped',
-      headStyles: { fillStyle: 'hsl(234, 45%, 25%)' }
+      headStyles: { fillColor: [26, 35, 126] }
     });
 
-    // Detailed Logs Section
+    // 2. Statistical Summary (Purpose of Visit)
+    const reasonsMap: Record<string, number> = {};
+    todayVisits.forEach(v => {
+      reasonsMap[v.reasonForVisit] = (reasonsMap[v.reasonForVisit] || 0) + 1;
+    });
+    const reasonData = Object.entries(reasonsMap)
+      .map(([name, count]) => [name, count.toString()])
+      .sort((a, b) => parseInt(b[1]) - parseInt(a[1]));
+
+    doc.setFontSize(16);
+    doc.text("Purpose of Visit Statistics", 14, (doc as any).lastAutoTable.finalY + 15);
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 20,
+      head: [['Reason for Visit', 'Frequency']],
+      body: reasonData.length > 0 ? reasonData : [['No data', '0']],
+      theme: 'grid',
+      headStyles: { fillColor: [26, 35, 126] }
+    });
+
+    // 3. Detailed Logs Section
+    doc.setFontSize(16);
     doc.text("Detailed Activity Log", 14, (doc as any).lastAutoTable.finalY + 15);
     
     const tableData = todayVisits.map(v => [
@@ -246,7 +267,7 @@ export default function AdminPage() {
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 20,
       head: [['Visitor Name', 'Type', 'Reason for Visit', 'Time']],
-      body: tableData,
+      body: tableData.length > 0 ? tableData : [['No visits recorded today', '-', '-', '-']],
       theme: 'grid',
       headStyles: { fillColor: [26, 35, 126] }
     });
