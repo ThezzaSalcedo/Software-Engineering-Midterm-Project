@@ -48,8 +48,9 @@ export default function AdminPage() {
     }
   }, [user, profile, authLoading, router]);
 
-  // Use the standard useCollection hook for visitor logs
-  // We explicitly wait for the profile and admin verification to reduce race condition errors
+  // Use the standard useCollection hook for visitor logs.
+  // We wait until the profile is fully loaded and recognized as Admin
+  // before even attempting the query to avoid race condition errors.
   const visitorLogsQuery = useMemoFirebase(() => {
     if (!db || !user || !profile || profile.role !== "Admin") return null;
     return query(
@@ -57,7 +58,7 @@ export default function AdminPage() {
       orderBy("visitDateTime", "desc"),
       limit(500)
     );
-  }, [db, user, profile]);
+  }, [db, user, profile?.role]);
 
   const { data: visitsData, isLoading: visitsLoading, error: visitsError } = useCollection<VisitRecord>(visitorLogsQuery);
   const visits = (visitsData || []) as VisitRecord[];
@@ -109,8 +110,7 @@ export default function AdminPage() {
     );
   }
 
-  // If user is authenticated but not an admin, we show an unauthorized message
-  // while the useEffect redirect above kicks in.
+  // Handle unauthorized access while the redirect kicks in
   if (!user || (profile && profile.role !== "Admin")) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/5">

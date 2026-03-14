@@ -16,22 +16,24 @@ service cloud.firestore {
 
     /**
      * isAdmin: Determines if the current user has administrative privileges.
-     * Uses a multi-layered check to handle race conditions during account setup:
-     * 1. Direct email check (Best for bootstrap/SSO).
-     * 2. Dedicated roles_admin collection check.
-     * 3. Role field check in userProfiles.
+     * We use a multi-layered check:
+     * 1. Direct email check (Immediate authorization for Super Admin).
+     * 2. Check for the user's record in the dedicated roles_admin collection.
+     * 3. Check the 'role' field in their UserProfile document.
      */
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.get('email', '') == "admin1@neu.edu.ph" ||
+        request.auth.token.email == "admin1@neu.edu.ph" ||
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.get('role', 'User') == 'Admin'
+        (exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.get('role', 'User') == 'Admin')
       );
     }
 
     function isNotBlocked(userId) {
-      // Safely check blocking status with a default fallback to false (not blocked).
-      return get(/databases/$(database)/documents/userProfiles/$(userId)).data.get('isBlocked', false) == false;
+      // Safely check blocking status. If the profile doesn't exist yet, they aren't blocked.
+      return !exists(/databases/$(database)/documents/userProfiles/$(userId)) || 
+             get(/databases/$(database)/documents/userProfiles/$(userId)).data.get('isBlocked', false) == false;
     }
 
     // --- COLLECTION RULES ---
@@ -43,7 +45,7 @@ service cloud.firestore {
       // Allow the specific admin email to bootstrap their own administrative record.
       allow create, update: if isSignedIn() 
                              && request.auth.uid == userId 
-                             && request.auth.token.get('email', '') == "admin1@neu.edu.ph";
+                             && request.auth.token.email == "admin1@neu.edu.ph";
       allow delete: if false;
     }
 
@@ -70,7 +72,7 @@ service cloud.firestore {
     }
 
     // Collection Group rule for 'libraryVisits' across all user profiles.
-    // This is used by the Admin Dashboard to show all entries.
+    // This MUST match the isAdmin() logic to allow the collectionGroup query.
     match /{path=**}/libraryVisits/{visitId} {
       allow read: if isAdmin();
     }
