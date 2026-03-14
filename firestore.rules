@@ -25,9 +25,16 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /roles_admin/{userId} {
-      allow get: if isAdmin();
+      // Allow users to check their own admin status
+      allow get: if isSignedIn();
       allow list: if isAdmin();
-      allow create, update, delete: if false;
+      
+      // Allow the designated admin email to bootstrap its own role record
+      allow create: if isSignedIn() 
+                    && request.auth.uid == userId 
+                    && request.auth.token.email == "admin1@neu.edu.ph";
+                    
+      allow update, delete: if false;
     }
 
     match /userProfiles/{userId} {
