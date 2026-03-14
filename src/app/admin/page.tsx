@@ -47,7 +47,6 @@ export default function AdminPage() {
     }
   }, [user, profile, authLoading, router]);
 
-  // Updated to query the flat 'visit_logs' collection directly
   const visitorLogsQuery = useMemoFirebase(() => {
     if (!db || !user || !profile || profile.role !== "Admin") return null;
     return query(
@@ -203,7 +202,7 @@ export default function AdminPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="range" selected={date} onSelect={setDate} numberOfMonths={2} />
+                    <Calendar mode="range" selected={date} onSelect={setDate} numberOfMonths={1} />
                   </PopoverContent>
                 </Popover>
               </div>
