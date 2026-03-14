@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Mail, Lock, ArrowRight, Loader2, CheckCircle } from "lucide-react";
+import { BookOpen, Mail, Lock, Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
@@ -35,7 +36,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: error.message || "Could not sign in with Google.",
+        description: error.message || "Could not log in with Google.",
       });
     } finally {
       setIsSubmitting(false);
@@ -194,18 +195,13 @@ export default function LoginPage() {
               </div>
               <Button 
                 type="submit" 
-                className="w-full h-12 sm:h-14 bg-[#1A237E] hover:bg-[#0D1642] text-white font-bold text-base sm:text-lg rounded-xl flex items-center justify-between px-6 transition-all"
+                className="w-full h-12 sm:h-14 bg-[#1A237E] hover:bg-[#0D1642] text-white font-bold text-base sm:text-lg rounded-xl flex items-center justify-center transition-all"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                 ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      {isLoginView ? "LOG IN" : "CREATE ACCOUNT"}
-                    </div>
-                    <ArrowRight className="w-5 h-5" />
-                  </>
+                  <>{isLoginView ? "LOG IN" : "CREATE ACCOUNT"}</>
                 )}
               </Button>
             </form>
