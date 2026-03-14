@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, ShieldCheck, Mail, Lock, ArrowRight, Loader2, CheckCircle } from "lucide-react";
+import { BookOpen, Mail, Lock, ArrowRight, Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
@@ -74,73 +74,73 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white">
-      {/* Left Column: Branding */}
-      <div className="flex-1 flex flex-col justify-center px-8 md:px-24 py-12 space-y-12">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+      {/* Left Column: Branding - Responsive padding and hidden on very small screens if needed */}
+      <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 md:px-20 lg:px-24 py-12 lg:py-0 space-y-8 md:space-y-12 bg-white">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
-            <BookOpen className="w-10 h-10 text-white" />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
+            <BookOpen className="w-6 h-6 md:w-10 md:h-10 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-black tracking-tighter text-[#1A237E]">NEU LIBRARY</span>
-              <span className="text-2xl font-black tracking-tighter text-accent">CONNECT</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xl md:text-2xl font-black tracking-tighter text-[#1A237E]">NEU LIBRARY</span>
+              <span className="text-xl md:text-2xl font-black tracking-tighter text-accent">CONNECT</span>
             </div>
-            <p className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase">Official Department Portal</p>
+            <p className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase">Official University Portal</p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <h1 className="text-6xl md:text-7xl font-black tracking-tight leading-[0.9] text-[#1A237E]">
+        <div className="space-y-4 md:space-y-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] md:leading-[0.9] text-[#1A237E]">
             WELCOME TO <br />
             <span className="italic">NEU LIBRARY.</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-lg leading-relaxed">
-            Secure digital check-in for New Era University students and faculty. Access resources, research, and quiet study spaces.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-lg leading-relaxed">
+            Secure digital access for New Era University members. Explore resources, research databases, and study areas.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-8">
+        <div className="flex flex-wrap gap-4 md:gap-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-accent" />
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-accent" />
             </div>
-            <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground">Verified Access</span>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">Verified Access</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-              <Mail className="w-5 h-5 text-accent" />
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <Mail className="w-4 h-4 md:w-5 md:h-5 text-accent" />
             </div>
-            <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground">Institutional Portal</span>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">Student Portal</span>
           </div>
         </div>
       </div>
 
-      {/* Right Column: Login Card */}
-      <div className="flex-1 bg-muted/30 flex items-center justify-center p-6 md:p-12">
+      {/* Right Column: Login Card - Responsive centering and width */}
+      <div className="flex-1 bg-muted/20 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <Card className="w-full max-w-md overflow-hidden shadow-2xl border-none">
-          <div className="relative h-56 w-full bg-[#1A237E]">
+          <div className="relative h-48 sm:h-56 w-full bg-[#1A237E]">
              <Image 
-                src="https://picsum.photos/seed/library-interior/600/400" 
+                src="https://picsum.photos/seed/library-vibe/600/400" 
                 fill 
                 className="object-cover opacity-60 mix-blend-overlay" 
-                alt="New Era University Library"
+                alt="New Era University Library Interior"
                 data-ai-hint="library interior"
               />
              <div className="absolute bottom-6 left-8">
                <div className="w-8 h-1 bg-accent mb-2" />
-               <h2 className="text-2xl font-black text-white uppercase tracking-tight">Welcome, Visitor</h2>
+               <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">Welcome, Visitor</h2>
              </div>
           </div>
 
-          <CardContent className="p-8 space-y-8">
+          <CardContent className="p-6 sm:p-8 space-y-6 sm:space-y-8">
             <Button 
               onClick={handleGoogleLogin} 
               variant="outline"
               disabled={isSubmitting}
-              className="w-full h-14 gap-3 font-bold border-muted-foreground/20 hover:bg-muted/50 transition-all rounded-xl"
+              className="w-full h-12 sm:h-14 gap-3 font-bold border-muted-foreground/20 hover:bg-muted/50 transition-all rounded-xl"
             >
-              <svg className="w-6 h-6" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 h-6" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#4285F4"
@@ -165,8 +165,8 @@ export default function LoginPage() {
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-muted-foreground/20" />
               </div>
-              <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
-                <span className="bg-white px-3 text-muted-foreground">Or Institutional ID</span>
+              <div className="relative flex justify-center text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">
+                <span className="bg-white px-3 text-muted-foreground">Or Email Access</span>
               </div>
             </div>
 
@@ -176,7 +176,7 @@ export default function LoginPage() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input 
                     placeholder="institutional@neu.edu.ph" 
-                    className="pl-10 h-12 bg-muted/30 border-none rounded-xl"
+                    className="pl-10 h-11 sm:h-12 bg-muted/30 border-none rounded-xl"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -188,7 +188,7 @@ export default function LoginPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input 
                     placeholder="Security Password" 
-                    className="pl-10 h-12 bg-muted/30 border-none rounded-xl"
+                    className="pl-10 h-11 sm:h-12 bg-muted/30 border-none rounded-xl"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -197,7 +197,7 @@ export default function LoginPage() {
               </div>
               <Button 
                 type="submit" 
-                className="w-full h-14 bg-[#9FA8DA] hover:bg-[#7986CB] text-white font-bold text-lg rounded-xl flex items-center justify-between px-6 transition-all"
+                className="w-full h-12 sm:h-14 bg-[#1A237E] hover:bg-[#0D1642] text-white font-bold text-base sm:text-lg rounded-xl flex items-center justify-between px-6 transition-all"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -214,19 +214,19 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="text-center">
+            <div className="text-center pt-2">
               <button 
                 onClick={() => setIsLoginView(!isLoginView)}
-                className="text-[10px] font-black tracking-widest uppercase text-[#1A237E] hover:underline"
+                className="text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-[#1A237E] hover:underline transition-all"
               >
-                {isLoginView ? "Don't have an account? Create one" : "Already have an account? Sign in"}
+                {isLoginView ? "New here? Create institutional account" : "Already registered? Sign in here"}
               </button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="fixed bottom-6 left-6 z-50">
+      <div className="fixed bottom-6 left-6 z-50 hidden sm:flex">
         <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg shadow-xl">
           N
         </div>
