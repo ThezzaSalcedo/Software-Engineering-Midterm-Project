@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X, LayoutDashboard, Ban } from "lucide-react";
-import { collection } from "firebase/firestore";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X, LayoutDashboard, Ban, Loader2 } from "lucide-react";
+import { collection, query, where, limit } from "firebase/firestore";
+import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
@@ -33,6 +33,18 @@ export default function DashboardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const { toast } = useToast();
+
+  // Query to check if the user has any previous visits
+  const userVisitsQuery = useMemoFirebase(() => {
+    if (!db || !profile?.id) return null;
+    return query(
+      collection(db, "visit_logs"),
+      where("userId", "==", profile.id),
+      limit(1)
+    );
+  }, [db, profile?.id]);
+
+  const { data: userVisits, isLoading: visitsLoading } = useCollection(userVisitsQuery);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -77,7 +89,16 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
-  if (loading || !user) return null;
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const isFirstTime = !userVisits || userVisits.length === 0;
+  const firstName = profile?.displayName?.split(' ')[0] || "User";
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/20 relative">
@@ -145,8 +166,19 @@ export default function DashboardPage() {
       <main className="flex-1 max-w-4xl mx-auto w-full p-4 py-8 sm:py-16 space-y-8 sm:space-y-12">
         <div className="space-y-3 text-center sm:text-left">
           <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-[#1A237E] font-headline">
-            WELCOME BACK, <br className="hidden sm:block" />
-            <span className="text-accent italic uppercase">{profile?.displayName?.split(' ')[0]}!</span>
+            {visitsLoading ? (
+              <div className="h-10 w-48 bg-muted animate-pulse rounded-lg" />
+            ) : isFirstTime ? (
+              <>
+                WELCOME, <br className="hidden sm:block" />
+                <span className="text-accent italic uppercase">{firstName}!</span>
+              </>
+            ) : (
+              <>
+                WELCOME BACK, <br className="hidden sm:block" />
+                <span className="text-accent italic uppercase">{firstName}!</span>
+              </>
+            )}
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-xl font-medium">Please record your purpose for visiting the university library today.</p>
         </div>
