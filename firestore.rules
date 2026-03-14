@@ -25,16 +25,17 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /roles_admin/{userId} {
-      // Allow users to check their own admin status
-      allow get: if isSignedIn();
+      // Allow users to check their own admin status and admins to see all
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
       
-      // Allow the designated admin email to bootstrap its own role record
-      allow create: if isSignedIn() 
-                    && request.auth.uid == userId 
-                    && request.auth.token.email == "admin1@neu.edu.ph";
+      // Allow the designated admin email to bootstrap and update its own role record.
+      // We use 'create' and 'update' to cover all setDoc scenarios.
+      allow create, update: if isSignedIn() 
+                             && request.auth.uid == userId 
+                             && request.auth.token.email == "admin1@neu.edu.ph";
                     
-      allow update, delete: if false;
+      allow delete: if false;
     }
 
     match /userProfiles/{userId} {

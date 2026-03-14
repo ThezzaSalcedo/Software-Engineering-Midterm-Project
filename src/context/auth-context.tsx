@@ -76,9 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const syncProfile = async (firebaseUser: any) => {
-    const userRef = doc(db, "userProfiles", firebaseUser.uid);
-    const userDoc = await getDoc(userRef);
-    
     // Check if this specific email is the designated Super Admin
     const isAdminEmail = firebaseUser.email === "admin1@neu.edu.ph";
     const role: UserRole = isAdminEmail ? "Admin" : "User";
@@ -94,6 +91,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, { merge: true });
     }
 
+    const userRef = doc(db, "userProfiles", firebaseUser.uid);
+    const userDoc = await getDoc(userRef);
+    
     if (!userDoc.exists()) {
       const newProfile: UserProfile = {
         id: firebaseUser.uid,
