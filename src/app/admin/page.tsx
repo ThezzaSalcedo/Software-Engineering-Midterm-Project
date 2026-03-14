@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -11,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -202,7 +201,12 @@ export default function AdminPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="range" selected={date} onSelect={setDate} numberOfMonths={1} />
+                    <Calendar 
+                      mode="range" 
+                      selected={date} 
+                      onSelect={setDate} 
+                      numberOfMonths={1} 
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
