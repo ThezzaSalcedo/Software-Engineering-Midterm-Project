@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -26,6 +27,11 @@
         "collegeOrOffice": {
           "type": "string",
           "description": "The user's selected college or office within the university. This information is collected during the first-time user onboarding."
+        },
+        "isBlocked": {
+          "type": "boolean",
+          "description": "Indicates if the user has been blocked from accessing library services by an administrator.",
+          "default": false
         },
         "createdAt": {
           "type": "string",
@@ -82,7 +88,7 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
@@ -94,27 +100,11 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user-specific data such as email, college/office, and timestamps. Access to a profile document is strictly limited to the owner (the user identified by {userId}) and potentially Admins. The 'id' in the UserProfile schema directly corresponds to the {userId} in the path and the Firebase Authentication UID. The 'role' field from the UserProfile schema is omitted from this collection for strict Authorization Independence; user roles are instead managed in the '/roles_admin/{userId}' collection for security rule checks.",
+          "description": "Stores user-specific data such as email, college/office, and timestamps.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user, matching their Firebase Authentication UID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_admin/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Dedicated collection for identifying users with 'Admin' roles. The existence of a document at this path (where {userId} matches a user's UID) grants 'Admin' privileges. This collection enables robust Database-Based Access Control (DBAC) using 'Existence over Content' for authorization checks in security rules, without requiring reads of the full UserProfile document.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of a user who possesses 'Admin' privileges."
             }
           ]
         }
@@ -126,11 +116,11 @@
           "schema": {
             "$ref": "#/backend/entities/LibraryVisit"
           },
-          "description": "Stores individual library visit records, nested under the owning user's profile. Access is restricted to the owner (the user identified by {userId}) and potentially Admins. The `userId` field within the `LibraryVisit` document is denormalized to match the parent `userId` in the path, reinforcing ownership and enabling direct authorization checks within security rules without relying on `get()` calls to parent documents. The `id` in the LibraryVisit schema corresponds to the {visitId} in the path.",
+          "description": "Stores individual library visit records.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user who made the visit, matching their Firebase Authentication UID."
+              "description": "The unique identifier of the user who made the visit."
             },
             {
               "name": "visitId",
@@ -139,7 +129,6 @@
           ]
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to adhere strictly to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Queries Are Not Permissions). \n\n**Authorization Independence:** This is achieved primarily by structuring user-owned data hierarchically and by segregating authorization-critical fields. For `UserProfile` documents, the `userId` is embedded directly in the path (`/userProfiles/{userId}`), making `request.auth.uid == userId` the simple and atomic authorization check without requiring `get()` calls on parent documents. Similarly, for `LibraryVisit` records, they are nested under the user's profile (`/userProfiles/{userId}/libraryVisits/{visitId}`), ensuring that ownership can be verified solely by comparing `request.auth.uid` with the `{userId}` in the path. The `userId` is also redundantly stored within the `LibraryVisit` document for data integrity, although the path remains the primary source for authorization. Critical role information ('Admin') is stored in a separate top-level collection (`/roles_admin/{userId}`). This 'existence over content' approach means rules can check `exists(/roles_admin/$(request.auth.uid))` without reading document data, further enhancing atomic authorization. This structure completely eliminates `get()` calls in security rules for checking ownership or roles within these paths.\n\n**QAPs (Queries Are Not Permissions):** The hierarchical and segmented structure naturally supports QAPs. When a user queries `/userProfiles/{request.auth.uid}/libraryVisits`, the security rules can efficiently ensure that only records belonging to `request.auth.uid` are returned because the `userId` is a mandatory segment of the path. This prevents users from requesting data they are not authorized to access and expecting rules to filter it out. The client must query the specific path they have access to. For administrative access to global lists (e.g., all `UserProfile`s or all `LibraryVisit`s), security rules would permit such `list` operations only if `exists(/roles_admin/$(request.auth.uid))` is true, ensuring that broad queries are only permitted for authorized roles without relying on filtering."
+    ]
   }
 }

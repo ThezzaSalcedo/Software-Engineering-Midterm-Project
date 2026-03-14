@@ -18,23 +18,18 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    function isNotBlocked(userId) {
+      return get(/databases/$(database)/documents/userProfiles/$(userId)).data.isBlocked != true;
     }
 
     // --- COLLECTION RULES ---
 
     match /roles_admin/{userId} {
-      // Allow users to check their own admin status and admins to see all
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
-      
-      // Allow the designated admin email to bootstrap and update its own role record.
-      // We use 'create' and 'update' to cover all setDoc scenarios.
       allow create, update: if isSignedIn() 
                              && request.auth.uid == userId 
                              && request.auth.token.email == "admin1@neu.edu.ph";
-                    
       allow delete: if false;
     }
 
@@ -42,7 +37,7 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if (isExistingOwner(userId) || isAdmin()) 
+      allow update: if (isOwner(userId) || isAdmin()) 
                     && request.resource.data.id == resource.data.id;
       allow delete: if isAdmin();
     }
@@ -50,17 +45,15 @@ service cloud.firestore {
     match /userProfiles/{userId}/libraryVisits/{visitId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) 
-                    && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) 
+                    && request.resource.data.userId == userId
+                    && isNotBlocked(userId);
+      allow update: if isOwner(userId) 
+                    && request.resource.data.userId == resource.data.userId
+                    && isNotBlocked(userId);
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
-    // --- COLLECTION GROUP RULES ---
-
-    /**
-     * @description Allow admins to query libraryVisits across all user profiles.
-     */
     match /{path=**}/libraryVisits/{visitId} {
       allow list: if isAdmin();
     }

@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword 
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { useAuth as useFirebaseAuth, useFirestore, useUser, setDocumentNonBlocking } from "@/firebase";
 
 export type UserRole = "Admin" | "User";
@@ -21,6 +21,7 @@ export interface UserProfile {
   photoURL?: string;
   role: UserRole;
   collegeOrOffice?: string;
+  isBlocked?: boolean;
   isSetupComplete: boolean;
   createdAt: string;
 }
@@ -46,27 +47,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchProfile() {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, "userProfiles", user.uid));
-          if (userDoc.exists()) {
-            setProfile(userDoc.data() as UserProfile);
-          } else {
-            setProfile(null);
-          }
-        } catch (error) {
+    let unsubscribe: () => void = () => {};
+
+    if (user && !isUserLoading) {
+      const userRef = doc(db, "userProfiles", user.uid);
+      
+      // Use onSnapshot for real-time updates (important for blocking/role changes)
+      unsubscribe = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as UserProfile);
+        } else {
           setProfile(null);
         }
-      } else {
-        setProfile(null);
-      }
+        setLoading(false);
+      }, (error) => {
+        console.error("Profile snapshot error:", error);
+        setLoading(false);
+      });
+    } else if (!isUserLoading) {
+      setProfile(null);
       setLoading(false);
     }
-    
-    if (!isUserLoading) {
-      fetchProfile();
-    }
+
+    return () => unsubscribe();
   }, [user, isUserLoading, db]);
 
   const validateEmail = (email: string) => {
@@ -76,12 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const syncProfile = async (firebaseUser: any) => {
-    // Check if this specific email is the designated Super Admin
     const isAdminEmail = firebaseUser.email === "admin1@neu.edu.ph";
     const role: UserRole = isAdminEmail ? "Admin" : "User";
 
-    // If this is the designated admin email, we MUST ensure the record in roles_admin exists.
-    // This is the source of truth for administrative authorization in security rules.
     if (isAdminEmail) {
       const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
       setDocumentNonBlocking(adminRoleRef, { 
@@ -101,24 +101,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || (isAdminEmail ? "Super Admin" : "User"),
         photoURL: firebaseUser.photoURL || "",
         role: role,
-        isSetupComplete: isAdminEmail, // Admin 1 bypasses onboarding
+        isBlocked: false,
+        isSetupComplete: isAdminEmail,
         createdAt: new Date().toISOString(),
       };
       
       setDocumentNonBlocking(userRef, newProfile, { merge: true });
-      setProfile(newProfile);
+      // Profile will be set by the onSnapshot listener
     } else {
       const existingData = userDoc.data() as UserProfile;
-      
-      // If the email is the admin email but the profile isn't marked as admin, update it.
       if (isAdminEmail && existingData.role !== "Admin") {
-        const updated = { ...existingData, role: "Admin" as UserRole, isSetupComplete: true };
-        setDocumentNonBlocking(userRef, updated, { merge: true });
-        setProfile(updated);
-        return;
+        setDocumentNonBlocking(userRef, { role: "Admin", isSetupComplete: true }, { merge: true });
       }
-      
-      setProfile(existingData);
     }
   };
 
@@ -148,11 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = async (data: Partial<UserProfile>) => {
     if (!user || !profile) return;
-    const updated = { ...profile, ...data } as UserProfile;
     const userRef = doc(db, "userProfiles", user.uid);
-    
-    setDocumentNonBlocking(userRef, updated, { merge: true });
-    setProfile(updated);
+    setDocumentNonBlocking(userRef, data, { merge: true });
   };
 
   return (
