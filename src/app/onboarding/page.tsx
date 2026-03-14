@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
+import { useAuth, UserProfile } from "@/context/auth-context";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -42,7 +43,7 @@ const OFFICES = [
 
 export default function OnboardingPage() {
   const { user, profile, updateProfile, loading } = useAuth();
-  const [userType, setUserType] = useState<"Student" | "Employee">("Student");
+  const [userType, setUserType] = useState<"Student" | "Faculty">("Student");
   const [selection, setSelection] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -62,6 +63,7 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       await updateProfile({
+        userType: userType,
         collegeOrOffice: selection,
         isSetupComplete: true,
       });
@@ -103,17 +105,17 @@ export default function OnboardingPage() {
                   className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-6 hover:bg-accent/5 hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all duration-200"
                 >
                   <GraduationCap className="mb-3 h-8 w-8 text-primary" />
-                  <span className="font-semibold text-lg">Student / Faculty</span>
+                  <span className="font-semibold text-lg">Student</span>
                 </Label>
               </div>
               <div className="relative">
-                <RadioGroupItem value="Employee" id="employee" className="peer sr-only" />
+                <RadioGroupItem value="Faculty" id="faculty" className="peer sr-only" />
                 <Label
-                  htmlFor="employee"
+                  htmlFor="faculty"
                   className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-6 hover:bg-accent/5 hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all duration-200"
                 >
                   <Building2 className="mb-3 h-8 w-8 text-primary" />
-                  <span className="font-semibold text-lg">Staff / Guest</span>
+                  <span className="font-semibold text-lg">Faculty</span>
                 </Label>
               </div>
             </RadioGroup>

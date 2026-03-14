@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -12,7 +13,7 @@ import {
   LogOut, Users, Activity, BarChart3, Search, 
   Calendar as CalendarIcon, RotateCcw, Loader2, 
   ShieldAlert, CalendarDays, History, ShieldCheck, 
-  Ban, CheckCircle2, UserCheck
+  Ban, CheckCircle2, UserCheck, GraduationCap, Building2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
@@ -27,6 +28,7 @@ interface VisitRecord {
   id: string;
   displayName?: string;
   email?: string;
+  userType?: "Student" | "Faculty";
   collegeOrOffice?: string;
   reasonForVisit: string;
   visitDateTime: string;
@@ -38,6 +40,7 @@ interface UserRecord {
   email: string;
   displayName: string;
   role: string;
+  userType?: "Student" | "Faculty";
   collegeOrOffice?: string;
   isBlocked?: boolean;
   isSetupComplete: boolean;
@@ -358,6 +361,7 @@ export default function AdminPage() {
                     <TableHeader className="bg-muted/30">
                       <TableRow>
                         <TableHead className="font-bold py-4 px-6">Visitor</TableHead>
+                        <TableHead className="font-bold py-4 px-6">Category</TableHead>
                         <TableHead className="font-bold py-4 px-6">College/Office</TableHead>
                         <TableHead className="font-bold py-4 px-6">Purpose</TableHead>
                         <TableHead className="text-right font-bold py-4 px-6">Time</TableHead>
@@ -374,6 +378,12 @@ export default function AdminPage() {
                               </div>
                             </TableCell>
                             <TableCell className="py-4 px-6">
+                              <Badge variant="outline" className="gap-1 rounded-full px-3 text-[10px] uppercase font-bold">
+                                {visit.userType === 'Student' ? <GraduationCap className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
+                                {visit.userType || "N/A"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-4 px-6">
                               <span className="text-xs">{visit.collegeOrOffice}</span>
                             </TableCell>
                             <TableCell className="py-4 px-6">
@@ -388,7 +398,7 @@ export default function AdminPage() {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-20 text-muted-foreground">
+                          <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
                             {visitsLoading ? (
                                <div className="flex flex-col items-center gap-2">
                                  <Loader2 className="w-6 h-6 animate-spin" />
@@ -432,7 +442,7 @@ export default function AdminPage() {
                     <TableHeader className="bg-muted/30">
                       <TableRow>
                         <TableHead className="font-bold py-4 px-6">User Details</TableHead>
-                        <TableHead className="font-bold py-4 px-6">Role</TableHead>
+                        <TableHead className="font-bold py-4 px-6">Type</TableHead>
                         <TableHead className="font-bold py-4 px-6">College/Office</TableHead>
                         <TableHead className="font-bold py-4 px-6">Status</TableHead>
                         <TableHead className="text-right font-bold py-4 px-6">Action</TableHead>
@@ -449,8 +459,9 @@ export default function AdminPage() {
                               </div>
                             </TableCell>
                             <TableCell className="py-4 px-6">
-                              <Badge variant={u.role === 'Admin' ? 'default' : 'secondary'} className="rounded-full px-3">
-                                {u.role}
+                              <Badge variant="secondary" className="gap-1 rounded-full px-3 text-[10px] uppercase font-bold">
+                                {u.userType === 'Student' ? <GraduationCap className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
+                                {u.userType || "N/A"}
                               </Badge>
                             </TableCell>
                             <TableCell className="py-4 px-6">

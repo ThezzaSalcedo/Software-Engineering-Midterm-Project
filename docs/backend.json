@@ -29,6 +29,11 @@
           "description": "The assigned role of the user (e.g., 'Admin', 'User').",
           "enum": ["Admin", "User"]
         },
+        "userType": {
+          "type": "string",
+          "description": "The institutional category of the user (e.g., 'Student', 'Faculty').",
+          "enum": ["Student", "Faculty"]
+        },
         "collegeOrOffice": {
           "type": "string",
           "description": "The user's selected college or office within the university. This information is collected during the first-time user onboarding."
@@ -84,6 +89,10 @@
         "email": {
           "type": "string",
           "description": "Snapshot of the user's email at the time of the visit."
+        },
+        "userType": {
+          "type": "string",
+          "description": "Snapshot of the user's institutional category at the time of the visit."
         },
         "collegeOrOffice": {
           "type": "string",

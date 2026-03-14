@@ -20,6 +20,7 @@ export interface UserProfile {
   displayName: string;
   photoURL?: string;
   role: UserRole;
+  userType?: "Student" | "Faculty";
   collegeOrOffice?: string;
   isBlocked?: boolean;
   isSetupComplete: boolean;

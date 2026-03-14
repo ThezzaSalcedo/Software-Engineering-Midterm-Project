@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -51,7 +52,6 @@ export default function DashboardPage() {
       if (!user) {
         router.push("/login");
       } else if (profile?.role === "Admin") {
-        // Restricted access: Admins are redirected to the Admin Console
         router.push("/admin");
       }
     }
@@ -77,6 +77,7 @@ export default function DashboardPage() {
       userId: profile.id,
       displayName: profile.displayName,
       email: profile.email,
+      userType: profile.userType,
       collegeOrOffice: profile.collegeOrOffice,
       reasonForVisit: reason,
       visitDateTime: new Date().toISOString(),
