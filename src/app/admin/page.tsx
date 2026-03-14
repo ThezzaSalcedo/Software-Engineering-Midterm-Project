@@ -3,18 +3,25 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { collection, query, orderBy, limit } from "firebase/firestore";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, limit, doc } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, RotateCcw, Loader2, ShieldAlert, CalendarDays, History } from "lucide-react";
+import { 
+  LogOut, Users, Activity, BarChart3, Search, 
+  Calendar as CalendarIcon, RotateCcw, Loader2, 
+  ShieldAlert, CalendarDays, History, ShieldCheck, 
+  Ban, CheckCircle2, UserCheck
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 interface VisitRecord {
   id: string;
@@ -23,6 +30,18 @@ interface VisitRecord {
   collegeOrOffice?: string;
   reasonForVisit: string;
   visitDateTime: string;
+  userId: string;
+}
+
+interface UserRecord {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  collegeOrOffice?: string;
+  isBlocked?: boolean;
+  isSetupComplete: boolean;
+  createdAt: string;
 }
 
 export default function AdminPage() {
@@ -31,6 +50,7 @@ export default function AdminPage() {
   const db = useFirestore();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [userSearchTerm, setUserSearchTerm] = useState("");
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
     to: new Date(),
@@ -48,17 +68,22 @@ export default function AdminPage() {
     }
   }, [user, profile, authLoading, router]);
 
+  // Queries
   const visitorLogsQuery = useMemoFirebase(() => {
     if (!db || !user || !profile || profile.role !== "Admin") return null;
-    return query(
-      collection(db, "visit_logs"),
-      orderBy("visitDateTime", "desc"),
-      limit(1000)
-    );
+    return query(collection(db, "visit_logs"), orderBy("visitDateTime", "desc"), limit(1000));
+  }, [db, user, profile?.role]);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!db || !user || !profile || profile.role !== "Admin") return null;
+    return query(collection(db, "users"), orderBy("createdAt", "desc"));
   }, [db, user, profile?.role]);
 
   const { data: visitsData, isLoading: visitsLoading } = useCollection<VisitRecord>(visitorLogsQuery);
+  const { data: usersData, isLoading: usersLoading } = useCollection<UserRecord>(usersQuery);
+
   const visits = (visitsData || []) as VisitRecord[];
+  const allUsers = (usersData || []) as UserRecord[];
 
   const handleLogout = async () => {
     await logout();
@@ -68,10 +93,7 @@ export default function AdminPage() {
   const handleResetFilters = () => {
     setSearchTerm("");
     setPeriod("custom");
-    setDate({
-      from: subDays(new Date(), 7),
-      to: new Date(),
-    });
+    setDate({ from: subDays(new Date(), 7), to: new Date() });
     setMonth(new Date());
   };
 
@@ -91,10 +113,15 @@ export default function AdminPage() {
       from = startOfMonth(now);
       to = endOfMonth(now);
     } else {
-      return; // Keep custom range
+      return;
     }
     setDate({ from, to });
     setMonth(from);
+  };
+
+  const toggleUserBlock = (userId: string, currentStatus: boolean) => {
+    const userRef = doc(db, "users", userId);
+    updateDocumentNonBlocking(userRef, { isBlocked: !currentStatus });
   };
 
   const filteredVisits = useMemo(() => {
@@ -111,10 +138,17 @@ export default function AdminPage() {
       const end = date.to ? endOfDay(date.to) : endOfDay(date.from);
       
       const matchesDate = isWithinInterval(visitDate, { start, end });
-      
       return matchesSearch && matchesDate;
     });
   }, [visits, searchTerm, date]);
+
+  const filteredUsers = useMemo(() => {
+    return allUsers.filter(u => {
+      const searchLower = userSearchTerm.toLowerCase();
+      return (u.displayName || "").toLowerCase().includes(searchLower) ||
+             (u.email || "").toLowerCase().includes(searchLower);
+    });
+  }, [allUsers, userSearchTerm]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -130,9 +164,10 @@ export default function AdminPage() {
       weekCount,
       monthCount,
       totalCount: visits.length,
-      filteredCount: filteredVisits.length
+      filteredCount: filteredVisits.length,
+      blockedUsers: allUsers.filter(u => u.isBlocked).length
     };
-  }, [visits, filteredVisits]);
+  }, [visits, filteredVisits, allUsers]);
 
   if (authLoading) {
     return (
@@ -146,7 +181,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/5">
         <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
-        <h1 className="text-2xl font-bold">Unauthorized Access</h1>
+        <h1 className="text-2xl font-bold font-headline">Unauthorized Access</h1>
         <p className="text-muted-foreground text-center max-w-md mt-2">
           You do not have the required administrative privileges to view this console. 
         </p>
@@ -160,198 +195,308 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-6 h-6" />
-            <h1 className="text-xl font-bold tracking-tight uppercase">NEU Library Admin</h1>
+            <h1 className="text-xl font-bold tracking-tight uppercase font-headline">NEU Library Admin</h1>
           </div>
           <Button variant="secondary" onClick={handleLogout} className="gap-2 font-semibold rounded-xl">
             <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <span className="hidden sm:inline">Sign Out</span>
           </Button>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto p-4 py-8 space-y-6">
         {/* Simple Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="shadow-none border bg-white rounded-xl">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-accent/10 rounded-lg text-accent">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-accent/10 rounded-lg text-accent hidden sm:block">
                 <Activity className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase">Today</p>
-                <p className="text-2xl font-black text-primary">{stats.todayCount}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Today</p>
+                <p className="text-xl sm:text-2xl font-black text-primary">{stats.todayCount}</p>
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-none border bg-white rounded-xl">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary hidden sm:block">
                 <CalendarDays className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase">Weekly</p>
-                <p className="text-2xl font-black text-primary">{stats.weekCount}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Weekly</p>
+                <p className="text-xl sm:text-2xl font-black text-primary">{stats.weekCount}</p>
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-none border bg-white rounded-xl">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                <History className="w-5 h-5" />
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-destructive/10 rounded-lg text-destructive hidden sm:block">
+                <Ban className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase">Monthly</p>
-                <p className="text-2xl font-black text-primary">{stats.monthCount}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Blocked</p>
+                <p className="text-xl sm:text-2xl font-black text-destructive">{stats.blockedUsers}</p>
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-none border bg-primary text-primary-foreground rounded-xl">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-white/20 rounded-lg">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg hidden sm:block">
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold opacity-80 uppercase">Results</p>
-                <p className="text-2xl font-black">{stats.filteredCount}</p>
+                <p className="text-[10px] font-bold opacity-80 uppercase">Total Users</p>
+                <p className="text-xl sm:text-2xl font-black">{allUsers.length}</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filter Controls */}
-        <Card className="shadow-sm border-none rounded-2xl overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
-              <div className="w-full lg:flex-1 space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Search Visitors</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search by name or email..." 
-                    className="pl-10 h-12 bg-muted/20 border-none rounded-xl"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
+        <Tabs defaultValue="visits" className="space-y-6">
+          <TabsList className="bg-white border p-1 rounded-xl w-full sm:w-auto h-12">
+            <TabsTrigger value="visits" className="flex-1 sm:flex-none px-8 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Visit Logs
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex-1 sm:flex-none px-8 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              User Management
+            </TabsTrigger>
+          </TabsList>
 
-              <div className="w-full lg:w-auto space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Quick Filters</label>
-                <Tabs value={period} onValueChange={handlePeriodChange} className="w-full">
-                  <TabsList className="h-12 bg-muted/20 p-1 rounded-xl w-full lg:w-auto">
-                    <TabsTrigger value="today" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Today</TabsTrigger>
-                    <TabsTrigger value="week" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Week</TabsTrigger>
-                    <TabsTrigger value="month" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Month</TabsTrigger>
-                    <TabsTrigger value="custom" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Custom</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-
-              <div className="w-full lg:w-auto space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Date Range</label>
-                <div className="flex gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full lg:w-[260px] justify-start text-left h-12 rounded-xl border-muted/50 bg-white">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                          date.to ? (
-                            <>{format(date.from, "LLL dd")} - {format(date.to, "LLL dd")}</>
-                          ) : (
-                            format(date.from, "LLL dd")
-                          )
-                        ) : (
-                          <span>Pick range</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="end">
-                      <Calendar 
-                        mode="range" 
-                        selected={date} 
-                        onSelect={(newDate) => {
-                          setDate(newDate);
-                          setPeriod("custom");
-                        }} 
-                        month={month}
-                        onMonthChange={setMonth}
-                        numberOfMonths={1} 
-                        onTodayClick={() => {
-                          const today = new Date();
-                          setDate({ from: today, to: today });
-                          setMonth(today);
-                          setPeriod("today");
-                        }}
+          <TabsContent value="visits" className="space-y-6">
+            {/* Filter Controls */}
+            <Card className="shadow-sm border-none rounded-2xl overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
+                  <div className="w-full lg:flex-1 space-y-2">
+                    <label className="text-xs font-bold uppercase text-muted-foreground">Search Visitors</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search by name or email..." 
+                        className="pl-10 h-12 bg-muted/20 border-none rounded-xl"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                       />
-                    </PopoverContent>
-                  </Popover>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-12 w-12 rounded-xl border border-dashed text-muted-foreground hover:text-primary hover:border-primary transition-colors"
-                    onClick={handleResetFilters}
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                    </div>
+                  </div>
 
-        {/* Data Table */}
-        <Card className="shadow-lg border-none bg-white rounded-2xl overflow-hidden">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="font-bold py-4 px-6">Visitor</TableHead>
-                    <TableHead className="font-bold py-4 px-6">College/Office</TableHead>
-                    <TableHead className="font-bold py-4 px-6">Purpose</TableHead>
-                    <TableHead className="text-right font-bold py-4 px-6">Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredVisits.length > 0 ? (
-                    filteredVisits.map((visit) => (
-                      <TableRow key={visit.id} className="hover:bg-muted/5 transition-colors">
-                        <TableCell className="py-4 px-6">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-sm">{visit.displayName}</span>
-                            <span className="text-[10px] text-muted-foreground">{visit.email}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 px-6">
-                          <span className="text-xs">{visit.collegeOrOffice}</span>
-                        </TableCell>
-                        <TableCell className="py-4 px-6">
-                          <span className="text-xs italic">{visit.reasonForVisit}</span>
-                        </TableCell>
-                        <TableCell className="text-right py-4 px-6">
-                          <span className="text-xs font-bold text-primary">
-                            {visit.visitDateTime ? format(new Date(visit.visitDateTime), "h:mm a") : "N/A"}
-                          </span>
-                        </TableCell>
+                  <div className="w-full lg:w-auto space-y-2">
+                    <label className="text-xs font-bold uppercase text-muted-foreground">Quick Filters</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['today', 'week', 'month', 'custom'].map((p) => (
+                        <Button 
+                          key={p}
+                          variant={period === p ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePeriodChange(p)}
+                          className="rounded-lg font-bold uppercase text-[10px] h-10 px-4"
+                        >
+                          {p}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="w-full lg:w-auto space-y-2">
+                    <label className="text-xs font-bold uppercase text-muted-foreground">Date Range</label>
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full lg:w-[260px] justify-start text-left h-12 rounded-xl border-muted/50 bg-white">
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date?.from ? (
+                              date.to ? (
+                                <>{format(date.from, "LLL dd")} - {format(date.to, "LLL dd")}</>
+                              ) : (
+                                format(date.from, "LLL dd")
+                              )
+                            ) : (
+                              <span>Pick range</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="end">
+                          <Calendar 
+                            mode="range" 
+                            selected={date} 
+                            onSelect={(newDate) => {
+                              setDate(newDate);
+                              setPeriod("custom");
+                            }} 
+                            month={month}
+                            onMonthChange={setMonth}
+                            numberOfMonths={1} 
+                            onTodayClick={() => {
+                              const today = new Date();
+                              setDate({ from: today, to: today });
+                              setMonth(today);
+                              setPeriod("today");
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-12 w-12 rounded-xl border border-dashed text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                        onClick={handleResetFilters}
+                      >
+                        <RotateCcw className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Data Table */}
+            <Card className="shadow-lg border-none bg-white rounded-2xl overflow-hidden">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
+                        <TableHead className="font-bold py-4 px-6">Visitor</TableHead>
+                        <TableHead className="font-bold py-4 px-6">College/Office</TableHead>
+                        <TableHead className="font-bold py-4 px-6">Purpose</TableHead>
+                        <TableHead className="text-right font-bold py-4 px-6">Time</TableHead>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-20 text-muted-foreground">
-                        {visitsLoading ? (
-                           <div className="flex flex-col items-center gap-2">
-                             <Loader2 className="w-6 h-6 animate-spin" />
-                             <span className="text-xs">Loading records...</span>
-                           </div>
-                        ) : "No records found for the selected period."}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredVisits.length > 0 ? (
+                        filteredVisits.map((visit) => (
+                          <TableRow key={visit.id} className="hover:bg-muted/5 transition-colors">
+                            <TableCell className="py-4 px-6">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-sm">{visit.displayName}</span>
+                                <span className="text-[10px] text-muted-foreground">{visit.email}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 px-6">
+                              <span className="text-xs">{visit.collegeOrOffice}</span>
+                            </TableCell>
+                            <TableCell className="py-4 px-6">
+                              <span className="text-xs italic">{visit.reasonForVisit}</span>
+                            </TableCell>
+                            <TableCell className="text-right py-4 px-6">
+                              <span className="text-xs font-bold text-primary">
+                                {visit.visitDateTime ? format(new Date(visit.visitDateTime), "LLL dd, h:mm a") : "N/A"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-20 text-muted-foreground">
+                            {visitsLoading ? (
+                               <div className="flex flex-col items-center gap-2">
+                                 <Loader2 className="w-6 h-6 animate-spin" />
+                                 <span className="text-xs">Loading records...</span>
+                               </div>
+                            ) : "No records found for the selected period."}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <Card className="shadow-sm border-none rounded-2xl overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row gap-4 items-end">
+                  <div className="flex-1 space-y-2 w-full">
+                    <label className="text-xs font-bold uppercase text-muted-foreground">Search Users</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search by name or email..." 
+                        className="pl-10 h-12 bg-muted/20 border-none rounded-xl"
+                        value={userSearchTerm}
+                        onChange={(e) => setUserSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg border-none bg-white rounded-2xl overflow-hidden">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
+                        <TableHead className="font-bold py-4 px-6">User Details</TableHead>
+                        <TableHead className="font-bold py-4 px-6">Role</TableHead>
+                        <TableHead className="font-bold py-4 px-6">College/Office</TableHead>
+                        <TableHead className="font-bold py-4 px-6">Status</TableHead>
+                        <TableHead className="text-right font-bold py-4 px-6">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((u) => (
+                          <TableRow key={u.id} className="hover:bg-muted/5 transition-colors">
+                            <TableCell className="py-4 px-6">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-sm">{u.displayName}</span>
+                                <span className="text-[10px] text-muted-foreground">{u.email}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 px-6">
+                              <Badge variant={u.role === 'Admin' ? 'default' : 'secondary'} className="rounded-full px-3">
+                                {u.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-4 px-6">
+                              <span className="text-xs">{u.collegeOrOffice || "N/A"}</span>
+                            </TableCell>
+                            <TableCell className="py-4 px-6">
+                              {u.isBlocked ? (
+                                <Badge variant="destructive" className="gap-1 rounded-full px-3">
+                                  <Ban className="w-3 h-3" />
+                                  Blocked
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="gap-1 border-accent text-accent rounded-full px-3">
+                                  <UserCheck className="w-3 h-3" />
+                                  Active
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right py-4 px-6">
+                              <div className="flex items-center justify-end gap-3">
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground hidden sm:inline">
+                                  {u.isBlocked ? "Unblock" : "Block User"}
+                                </span>
+                                <Switch 
+                                  checked={!u.isBlocked} 
+                                  onCheckedChange={() => toggleUserBlock(u.id, !!u.isBlocked)}
+                                  disabled={u.email === 'admin1@neu.edu.ph'} // Prevent blocking super admin
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                            {usersLoading ? "Loading users..." : "No users found."}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

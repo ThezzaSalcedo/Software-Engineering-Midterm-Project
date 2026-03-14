@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X, LayoutDashboard } from "lucide-react";
+import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X, LayoutDashboard, Ban } from "lucide-react";
 import { collection } from "firebase/firestore";
 import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -84,26 +83,26 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col bg-muted/20 relative">
       {showSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-primary/20 backdrop-blur-sm animate-in fade-in zoom-in duration-300 p-4">
-          <Card className="w-full max-w-md shadow-2xl border-none overflow-hidden text-center relative">
+          <Card className="w-full max-w-md shadow-2xl border-none overflow-hidden text-center relative rounded-3xl">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setShowSuccess(false)}
-              className="absolute right-2 top-2"
+              className="absolute right-4 top-4 text-white hover:bg-white/20"
             >
-              <X className="w-4 h-4" />
+              <X className="w-6 h-6" />
             </Button>
-            <div className="bg-primary p-8 flex flex-col items-center gap-4">
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
-                <Sparkles className="w-10 h-10 text-white" />
+            <div className="bg-primary p-12 flex flex-col items-center gap-6">
+              <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center animate-bounce shadow-inner">
+                <Sparkles className="w-12 h-12 text-white" />
               </div>
-              <h3 className="text-3xl font-black text-white tracking-tight">SUCCESS!</h3>
+              <h3 className="text-4xl font-black text-white tracking-tight uppercase font-headline">Visit Logged!</h3>
             </div>
-            <CardContent className="p-8 space-y-4">
-              <h2 className="text-2xl font-bold text-primary italic">Welcome to NEU Library!</h2>
-              <p className="text-muted-foreground">Your visit has been recorded. Enjoy your study session and make the most of our resources.</p>
-              <Button onClick={() => setShowSuccess(false)} className="w-full h-12 font-bold text-lg">
-                Close
+            <CardContent className="p-10 space-y-6">
+              <h2 className="text-2xl font-bold text-primary italic font-headline">Welcome to NEU Library!</h2>
+              <p className="text-muted-foreground leading-relaxed">Your visit has been recorded successfully. Please maintain silence and follow library protocols.</p>
+              <Button onClick={() => setShowSuccess(false)} className="w-full h-14 font-black text-xl rounded-2xl shadow-lg hover:scale-105 transition-transform">
+                Got it, thanks!
               </Button>
             </CardContent>
           </Card>
@@ -113,14 +112,15 @@ export default function DashboardPage() {
       <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+              <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <h1 className="font-bold text-xl tracking-tight text-primary">NEW ERA UNIVERSITY LIBRARY</h1>
+            <h1 className="font-bold text-lg sm:text-xl tracking-tight text-primary hidden sm:block font-headline">NEW ERA UNIVERSITY LIBRARY</h1>
+            <h1 className="font-bold text-lg sm:text-xl tracking-tight text-primary sm:hidden font-headline">NEU LIBRARY</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-6">
             {profile?.role === "Admin" && (
-              <Button variant="outline" size="sm" asChild className="hidden md:flex gap-2 border-primary text-primary hover:bg-primary/5">
+              <Button variant="outline" size="sm" asChild className="hidden md:flex gap-2 border-primary text-primary hover:bg-primary/5 rounded-full font-bold">
                 <Link href="/admin">
                   <LayoutDashboard className="w-4 h-4" />
                   Admin Console
@@ -128,12 +128,12 @@ export default function DashboardPage() {
               </Button>
             )}
             <div className="hidden sm:flex flex-col items-end">
-              <span className="text-sm font-semibold">{profile?.displayName}</span>
-              <span className="text-xs text-muted-foreground">{profile?.collegeOrOffice}</span>
+              <span className="text-sm font-bold">{profile?.displayName}</span>
+              <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">{profile?.collegeOrOffice}</span>
             </div>
-            <Avatar className="border-2 border-primary/20">
+            <Avatar className="border-2 border-primary/20 w-10 h-10">
               <AvatarImage src={profile?.photoURL} />
-              <AvatarFallback>{profile?.displayName?.[0]}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary font-bold">{profile?.displayName?.[0]}</AvatarFallback>
             </Avatar>
             <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive transition-colors">
               <LogOut className="w-5 h-5" />
@@ -142,44 +142,52 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full p-4 py-12 space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Welcome back, {profile?.displayName?.split(' ')[0]}!</h2>
-          <p className="text-muted-foreground">Please record your purpose for visiting the university library today.</p>
+      <main className="flex-1 max-w-4xl mx-auto w-full p-4 py-8 sm:py-16 space-y-8 sm:space-y-12">
+        <div className="space-y-3 text-center sm:text-left">
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-[#1A237E] font-headline">
+            WELCOME BACK, <br className="hidden sm:block" />
+            <span className="text-accent italic uppercase">{profile?.displayName?.split(' ')[0]}!</span>
+          </h2>
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-xl font-medium">Please record your purpose for visiting the university library today.</p>
         </div>
 
         {profile?.isBlocked ? (
-          <Card className="border-destructive/30 bg-destructive/5 shadow-lg">
-            <CardContent className="p-8 flex flex-col items-center text-center space-y-4">
-              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-                <ShieldAlert className="w-8 h-8 text-destructive" />
+          <Card className="border-destructive/30 bg-white shadow-2xl rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-destructive/10 p-8 flex flex-col items-center text-center space-y-6">
+              <div className="w-24 h-24 bg-destructive text-white rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                <Ban className="w-12 h-12" />
               </div>
-              <div className="space-y-2">
-                <CardTitle className="text-2xl font-bold text-destructive">Access Restricted</CardTitle>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  We're sorry, but your library access has been temporarily restricted. 
-                  Please contact the administration office or library head to resolve this status.
+              <div className="space-y-3">
+                <CardTitle className="text-3xl font-black text-destructive uppercase tracking-tighter font-headline">Account Restricted</CardTitle>
+                <p className="text-muted-foreground max-w-md mx-auto text-lg leading-relaxed">
+                  We're sorry, but your library access has been temporarily restricted by the administration. 
                 </p>
+                <div className="bg-destructive/5 border border-destructive/10 rounded-2xl p-6 mt-6">
+                  <p className="text-sm font-bold text-destructive flex items-center justify-center gap-2">
+                    <ShieldAlert className="w-4 h-4" />
+                    CONTACT THE LIBRARY OFFICE TO RESOLVE
+                  </p>
+                </div>
               </div>
-            </CardContent>
+            </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 shadow-xl border-none">
-              <CardHeader>
-                <CardTitle>Library Entry Log</CardTitle>
-                <CardDescription>Select the primary reason for your visit.</CardDescription>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+            <Card className="md:col-span-2 shadow-2xl border-none rounded-3xl overflow-hidden bg-white">
+              <CardHeader className="bg-muted/30 pb-8 pt-10 px-8">
+                <CardTitle className="text-2xl font-black tracking-tight text-primary font-headline">ENTRY LOG FORM</CardTitle>
+                <CardDescription className="text-base font-medium">Select the primary reason for your visit today.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <Label htmlFor="reason" className="text-base font-semibold">Reason for Visiting</Label>
+              <CardContent className="space-y-8 p-8">
+                <div className="space-y-4">
+                  <Label htmlFor="reason" className="text-sm font-black uppercase tracking-widest text-muted-foreground">Purpose of Visit</Label>
                   <Select onValueChange={setReason} value={reason}>
-                    <SelectTrigger id="reason" className="h-14 text-lg rounded-xl focus:ring-primary">
-                      <SelectValue placeholder="What brings you to the library?" />
+                    <SelectTrigger id="reason" className="h-16 text-xl rounded-2xl border-2 border-muted hover:border-primary/20 transition-all focus:ring-primary shadow-sm bg-muted/10 font-bold">
+                      <SelectValue placeholder="Select purpose..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl border-none shadow-2xl">
                       {VISIT_REASONS.map((r) => (
-                        <SelectItem key={r} value={r} className="text-lg py-3">
+                        <SelectItem key={r} value={r} className="text-lg py-4 px-6 focus:bg-primary focus:text-white transition-colors">
                           {r}
                         </SelectItem>
                       ))}
@@ -187,67 +195,80 @@ export default function DashboardPage() {
                   </Select>
                 </div>
 
-                <div className="bg-muted/30 rounded-xl p-4 flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-accent mt-0.5" />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    By clicking confirm, you agree to follow the library's rules and regulations, 
-                    including maintaining silence and taking care of the facilities.
+                <div className="bg-accent/5 border border-accent/10 rounded-2xl p-5 flex items-start gap-4">
+                  <div className="mt-1">
+                    <CheckCircle2 className="w-6 h-6 text-accent" />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                    By confirming your entry, you acknowledge institutional library policies and agree to maintain a quiet environment.
                   </p>
                 </div>
               </CardContent>
-              <CardFooter className="pt-2">
+              <CardFooter className="p-8 pt-0">
                 <Button 
                   onClick={handleSubmit} 
                   disabled={!reason || isSubmitting}
-                  className="w-full h-14 text-xl font-black gap-2 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
+                  className="w-full h-16 text-2xl font-black gap-3 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary hover:bg-[#1A237E]"
                 >
-                  {isSubmitting ? "RECORDING VISIT..." : "CONFIRM LIBRARY ENTRY"}
-                  {!isSubmitting && <CheckCircle2 className="w-6 h-6" />}
+                  {isSubmitting ? "PROCESSING..." : "CONFIRM ENTRY"}
+                  {!isSubmitting && <CheckCircle2 className="w-7 h-7" />}
                 </Button>
               </CardFooter>
             </Card>
 
             <div className="space-y-6">
-              <Card className="border-accent/20 bg-accent/5 shadow-sm">
-                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Card className="border-accent/20 bg-white shadow-lg rounded-2xl overflow-hidden">
+                 <div className="bg-accent h-2 w-full" />
+                 <CardHeader className="pb-2 pt-6">
+                   <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-accent">
                      <MapPin className="w-4 h-4" />
-                     Location
+                     Your Location
                    </CardTitle>
                  </CardHeader>
-                 <CardContent>
-                   <p className="text-lg font-bold">Main University Library</p>
-                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Level 1 - Research Hall</p>
+                 <CardContent className="pb-6">
+                   <p className="text-xl font-bold text-primary">Main Campus Library</p>
+                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-1">Level 1 - General Circulation</p>
                  </CardContent>
               </Card>
 
-              <Card className="border-primary/20 shadow-sm">
-                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Card className="border-primary/20 bg-white shadow-lg rounded-2xl overflow-hidden">
+                 <div className="bg-primary h-2 w-full" />
+                 <CardHeader className="pb-2 pt-6">
+                   <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-primary">
                      <Clock className="w-4 h-4" />
-                     Service Hours
+                     Service Schedule
                    </CardTitle>
                  </CardHeader>
-                 <CardContent className="space-y-3 pt-2">
-                   <div className="flex justify-between text-sm">
-                     <span className="text-muted-foreground">Mon - Fri</span>
-                     <span className="font-bold">08:00 - 21:00</span>
+                 <CardContent className="space-y-4 pt-2 pb-6">
+                   <div className="flex justify-between items-center text-sm border-b border-muted pb-3">
+                     <span className="text-muted-foreground font-bold">Weekdays</span>
+                     <span className="font-black text-primary">08:00 - 21:00</span>
                    </div>
-                   <div className="flex justify-between text-sm">
-                     <span className="text-muted-foreground">Saturday</span>
-                     <span className="font-bold">09:00 - 17:00</span>
+                   <div className="flex justify-between items-center text-sm">
+                     <span className="text-muted-foreground font-bold">Saturdays</span>
+                     <span className="font-black text-primary">09:00 - 17:00</span>
                    </div>
                  </CardContent>
               </Card>
+
+              <div className="bg-muted/10 border-2 border-dashed border-muted rounded-2xl p-6 text-center space-y-2">
+                 <p className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Powered By</p>
+                 <p className="text-sm font-black text-primary/40 font-headline">NEU CAMPUS CONNECT</p>
+              </div>
             </div>
           </div>
         )}
       </main>
       
-      <footer className="border-t py-8 bg-white/50 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-2 text-sm text-muted-foreground">
-          <p className="font-bold tracking-tight text-primary/60 uppercase">NEU LIBRARY SYSTEM V2.0</p>
-          <p>&copy; {new Date().getFullYear()} New Era University. All institutional rights reserved.</p>
+      <footer className="border-t py-10 bg-white/50 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-3 text-center">
+          <div className="flex items-center gap-2 opacity-30">
+            <BookOpen className="w-5 h-5" />
+            <p className="font-black tracking-widest text-primary uppercase text-xs">NEU LIBRARY SYSTEM V2.5</p>
+          </div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            &copy; {new Date().getFullYear()} New Era University. Official Institutional Platform.
+          </p>
         </div>
       </footer>
     </div>
