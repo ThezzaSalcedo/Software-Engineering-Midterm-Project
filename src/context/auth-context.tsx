@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -78,21 +79,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userRef = doc(db, "userProfiles", firebaseUser.uid);
     const userDoc = await getDoc(userRef);
     
+    // Check if this specific email should be an admin
+    const isAdminEmail = firebaseUser.email === "admin1@neu.edu.ph";
+    const role: UserRole = isAdminEmail ? "Admin" : "User";
+
     if (!userDoc.exists()) {
       const newProfile: UserProfile = {
         id: firebaseUser.uid,
         email: firebaseUser.email || "",
-        displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || "User",
+        displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || (isAdminEmail ? "Super Admin" : "User"),
         photoURL: firebaseUser.photoURL || "",
-        role: "User",
-        isSetupComplete: false,
+        role: role,
+        isSetupComplete: isAdminEmail, // Admin 1 bypasses onboarding
         createdAt: new Date().toISOString(),
       };
       
       setDocumentNonBlocking(userRef, newProfile, { merge: true });
+      
+      // If admin, we also need to create the record in roles_admin for security rules
+      if (isAdminEmail) {
+        const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
+        setDocumentNonBlocking(adminRoleRef, { id: firebaseUser.uid }, { merge: true });
+      }
+
       setProfile(newProfile);
     } else {
-      setProfile(userDoc.data() as UserProfile);
+      const existingData = userDoc.data() as UserProfile;
+      // Ensure admin record exists if it's the admin email
+      if (isAdminEmail) {
+        const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
+        setDocumentNonBlocking(adminRoleRef, { id: firebaseUser.uid }, { merge: true });
+        
+        if (existingData.role !== "Admin") {
+          const updated = { ...existingData, role: "Admin" as UserRole, isSetupComplete: true };
+          setDocumentNonBlocking(userRef, updated, { merge: true });
+          setProfile(updated);
+          return;
+        }
+      }
+      setProfile(existingData);
     }
   };
 
