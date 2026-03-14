@@ -9,7 +9,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2 } from "lucide-react";
+import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -37,20 +37,20 @@ export default function AdminPage() {
     to: new Date(),
   });
 
-  // Access control
+  // Access control and verification
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
         router.push("/login");
-      } else if (!profile || profile.role !== "Admin") {
+      } else if (profile && profile.role !== "Admin") {
         router.push("/dashboard");
       }
     }
   }, [user, profile, authLoading, router]);
 
   // Use the standard useCollection hook for visitor logs
+  // We explicitly wait for the profile and admin verification to reduce race condition errors
   const visitorLogsQuery = useMemoFirebase(() => {
-    // Only attempt to query if the user is authenticated and verified as an Admin
     if (!db || !user || !profile || profile.role !== "Admin") return null;
     return query(
       collectionGroup(db, "libraryVisits"),
@@ -59,7 +59,7 @@ export default function AdminPage() {
     );
   }, [db, user, profile]);
 
-  const { data: visitsData, isLoading: visitsLoading } = useCollection<VisitRecord>(visitorLogsQuery);
+  const { data: visitsData, isLoading: visitsLoading, error: visitsError } = useCollection<VisitRecord>(visitorLogsQuery);
   const visits = (visitsData || []) as VisitRecord[];
 
   const handleLogout = async () => {
@@ -109,7 +109,20 @@ export default function AdminPage() {
     );
   }
 
-  if (!user || profile?.role !== "Admin") return null;
+  // If user is authenticated but not an admin, we show an unauthorized message
+  // while the useEffect redirect above kicks in.
+  if (!user || (profile && profile.role !== "Admin")) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/5">
+        <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
+        <h1 className="text-2xl font-bold">Unauthorized Access</h1>
+        <p className="text-muted-foreground text-center max-w-md mt-2">
+          You do not have the required administrative privileges to view this console. 
+          Returning to dashboard...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/5 font-body">
@@ -120,7 +133,7 @@ export default function AdminPage() {
               <BarChart3 className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">NEU Library Admin</h1>
+              <h1 className="text-xl font-bold tracking-tight uppercase">NEU Library Admin</h1>
               <p className="text-[10px] uppercase tracking-widest opacity-70 font-semibold">Management Console</p>
             </div>
           </div>
@@ -132,6 +145,20 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 py-8 space-y-8">
+        {/* Error State if Permission Fails */}
+        {visitsError && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardContent className="p-4 flex items-center gap-4 text-destructive">
+              <ShieldAlert className="w-6 h-6 shrink-0" />
+              <div className="text-sm">
+                <p className="font-bold">System Sync in Progress</p>
+                <p className="opacity-80">Initial administrative permissions are being synchronized. Please refresh the page if data doesn't appear in a few moments.</p>
+              </div>
+              <Button size="sm" variant="outline" className="ml-auto" onClick={() => window.location.reload()}>Refresh</Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="shadow-sm border-none bg-white rounded-2xl">

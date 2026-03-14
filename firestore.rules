@@ -14,31 +14,40 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    /**
+     * isAdmin: Determines if the current user has administrative privileges.
+     * Uses a multi-layered check to handle race conditions during account setup:
+     * 1. Direct email check (Best for bootstrap/SSO).
+     * 2. Dedicated roles_admin collection check.
+     * 3. Role field check in userProfiles.
+     */
     function isAdmin() {
-      // Direct email check is the most resilient way to authorize the bootstrap admin.
       return isSignedIn() && (
-        request.auth.token.email == "admin1@neu.edu.ph" ||
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))
+        request.auth.token.get('email', '') == "admin1@neu.edu.ph" ||
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.get('role', 'User') == 'Admin'
       );
     }
 
     function isNotBlocked(userId) {
-      // Safely check blocking status with a default fallback.
+      // Safely check blocking status with a default fallback to false (not blocked).
       return get(/databases/$(database)/documents/userProfiles/$(userId)).data.get('isBlocked', false) == false;
     }
 
     // --- COLLECTION RULES ---
 
+    // Administrative roles registration
     match /roles_admin/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
       // Allow the specific admin email to bootstrap their own administrative record.
       allow create, update: if isSignedIn() 
                              && request.auth.uid == userId 
-                             && request.auth.token.email == "admin1@neu.edu.ph";
+                             && request.auth.token.get('email', '') == "admin1@neu.edu.ph";
       allow delete: if false;
     }
 
+    // User profiles and their sub-collections
     match /userProfiles/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -60,7 +69,8 @@ service cloud.firestore {
       }
     }
 
-    // This specific rule handles 'collectionGroup' queries across all 'libraryVisits' sub-collections.
+    // Collection Group rule for 'libraryVisits' across all user profiles.
+    // This is used by the Admin Dashboard to show all entries.
     match /{path=**}/libraryVisits/{visitId} {
       allow read: if isAdmin();
     }

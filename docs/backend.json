@@ -16,13 +16,18 @@
           "description": "The user's institutional email address, used for login and identification.",
           "format": "email"
         },
+        "displayName": {
+          "type": "string",
+          "description": "The user's full name as provided by their identity provider."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "The URL to the user's profile picture."
+        },
         "role": {
           "type": "string",
           "description": "The assigned role of the user (e.g., 'Admin', 'User').",
-          "format": "enum",
-          "items": {
-            "type": "string"
-          }
+          "enum": ["Admin", "User"]
         },
         "collegeOrOffice": {
           "type": "string",
@@ -31,6 +36,11 @@
         "isBlocked": {
           "type": "boolean",
           "description": "Indicates if the user has been blocked from accessing library services by an administrator.",
+          "default": false
+        },
+        "isSetupComplete": {
+          "type": "boolean",
+          "description": "Indicates if the user has completed the onboarding flow.",
           "default": false
         },
         "createdAt": {
@@ -48,7 +58,7 @@
         "id",
         "email",
         "role",
-        "collegeOrOffice",
+        "isSetupComplete",
         "createdAt",
         "updatedAt"
       ]
@@ -66,6 +76,18 @@
         "userId": {
           "type": "string",
           "description": "Reference to the UserProfile who made this visit. (Relationship: UserProfile 1:N LibraryVisit)"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Snapshot of the user's display name at the time of the visit."
+        },
+        "email": {
+          "type": "string",
+          "description": "Snapshot of the user's email at the time of the visit."
+        },
+        "collegeOrOffice": {
+          "type": "string",
+          "description": "Snapshot of the user's college/office at the time of the visit."
         },
         "reasonForVisit": {
           "type": "string",
@@ -126,6 +148,24 @@
               "name": "visitId",
               "description": "The unique identifier for a specific library visit."
             }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "email": { "type": "string" },
+              "assignedAt": { "type": "string", "format": "date-time" }
+            }
+          },
+          "description": "Lookup collection to verify administrative privileges securely.",
+          "params": [
+            { "name": "userId", "description": "The user's UID." }
           ]
         }
       }
