@@ -13,7 +13,8 @@ import {
   LogOut, Users, Activity, BarChart3, Search, 
   Calendar as CalendarIcon, RotateCcw, Loader2, 
   ShieldAlert, CalendarDays, History, ShieldCheck, 
-  Ban, CheckCircle2, UserCheck, GraduationCap, Building2
+  Ban, CheckCircle2, UserCheck, GraduationCap, Building2,
+  PieChart as PieChartIcon, BarChart as BarChartIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
@@ -23,6 +24,11 @@ import { DateRange } from "react-day-picker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, 
+  Pie, PieChart, Cell, Legend 
+} from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface VisitRecord {
   id: string;
@@ -74,7 +80,7 @@ export default function AdminPage() {
   // Queries
   const visitorLogsQuery = useMemoFirebase(() => {
     if (!db || !user || !profile || profile.role !== "Admin") return null;
-    return query(collection(db, "visit_logs"), orderBy("visitDateTime", "desc"), limit(1000));
+    return query(collection(db, "visit_logs"), orderBy("visitDateTime", "desc"), limit(2000));
   }, [db, user, profile?.role]);
 
   const usersQuery = useMemoFirebase(() => {
@@ -154,23 +160,40 @@ export default function AdminPage() {
   }, [allUsers, userSearchTerm]);
 
   const stats = useMemo(() => {
-    const now = new Date();
     const todayCount = visits.filter(v => isToday(new Date(v.visitDateTime))).length;
-    const weekCount = visits.filter(v => {
-      const d = new Date(v.visitDateTime);
-      return isWithinInterval(d, { start: startOfWeek(now), end: endOfWeek(now) });
-    }).length;
-    const monthCount = visits.filter(v => isSameMonth(new Date(v.visitDateTime), now)).length;
+    const studentCount = visits.filter(v => v.userType === 'Student').length;
+    const facultyCount = visits.filter(v => v.userType === 'Faculty').length;
     
     return {
       todayCount,
-      weekCount,
-      monthCount,
-      totalCount: visits.length,
-      filteredCount: filteredVisits.length,
-      blockedUsers: allUsers.filter(u => u.isBlocked).length
+      studentCount,
+      facultyCount,
+      totalVisits: visits.length,
+      blockedUsers: allUsers.filter(u => u.isBlocked).length,
+      totalRegisteredUsers: allUsers.length
     };
-  }, [visits, filteredVisits, allUsers]);
+  }, [visits, allUsers]);
+
+  const chartData = useMemo(() => {
+    // Pie Chart Data: Students vs Faculty
+    const userTypeData = [
+      { name: 'Students', value: stats.studentCount, color: 'hsl(var(--primary))' },
+      { name: 'Faculty', value: stats.facultyCount, color: 'hsl(var(--accent))' },
+    ];
+
+    // Bar Chart Data: Reasons for Visit
+    const reasonsMap: Record<string, number> = {};
+    visits.forEach(v => {
+      reasonsMap[v.reasonForVisit] = (reasonsMap[v.reasonForVisit] || 0) + 1;
+    });
+    
+    const reasonData = Object.entries(reasonsMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    return { userTypeData, reasonData };
+  }, [stats, visits]);
 
   if (authLoading) {
     return (
@@ -208,7 +231,7 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 py-8 space-y-6">
-        {/* Simple Stats Bar */}
+        {/* Main Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="shadow-none border bg-white rounded-xl">
             <CardContent className="p-4 flex items-center gap-3">
@@ -216,7 +239,7 @@ export default function AdminPage() {
                 <Activity className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">Today</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Today's Entries</p>
                 <p className="text-xl sm:text-2xl font-black text-primary">{stats.todayCount}</p>
               </div>
             </CardContent>
@@ -224,22 +247,22 @@ export default function AdminPage() {
           <Card className="shadow-none border bg-white rounded-xl">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg text-primary hidden sm:block">
-                <CalendarDays className="w-5 h-5" />
+                <GraduationCap className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">Weekly</p>
-                <p className="text-xl sm:text-2xl font-black text-primary">{stats.weekCount}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Student Visits</p>
+                <p className="text-xl sm:text-2xl font-black text-primary">{stats.studentCount}</p>
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-none border bg-white rounded-xl">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 bg-destructive/10 rounded-lg text-destructive hidden sm:block">
-                <Ban className="w-5 h-5" />
+              <div className="p-2 bg-accent/10 rounded-lg text-accent hidden sm:block">
+                <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">Blocked</p>
-                <p className="text-xl sm:text-2xl font-black text-destructive">{stats.blockedUsers}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Faculty Visits</p>
+                <p className="text-xl sm:text-2xl font-black text-primary">{stats.facultyCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -249,9 +272,63 @@ export default function AdminPage() {
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold opacity-80 uppercase">Total Users</p>
-                <p className="text-xl sm:text-2xl font-black">{allUsers.length}</p>
+                <p className="text-[10px] font-bold opacity-80 uppercase">Total Logged Visits</p>
+                <p className="text-xl sm:text-2xl font-black">{stats.totalVisits}</p>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Statistical Summary Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-1 shadow-sm border-none rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <PieChartIcon className="w-4 h-4 text-primary" />
+                User Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData.userTypeData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {chartData.userTypeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2 shadow-sm border-none rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <BarChartIcon className="w-4 h-4 text-primary" />
+                Purpose of Visit (Top Reasons)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData.reasonData}>
+                  <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
