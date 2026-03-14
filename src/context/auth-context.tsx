@@ -73,20 +73,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, isUserLoading, db]);
 
   const validateEmail = (email: string) => {
-    if (!email.endsWith("@neu.edu.ph")) {
+    if (!email.toLowerCase().endsWith("@neu.edu.ph")) {
       throw new Error("Access denied. Please use your @neu.edu.ph institutional email.");
     }
   };
 
   const syncProfile = async (firebaseUser: any) => {
-    const isAdminEmail = firebaseUser.email === "admin1@neu.edu.ph";
+    const email = firebaseUser.email?.toLowerCase();
+    const isAdminEmail = email === "admin1@neu.edu.ph";
     const role: UserRole = isAdminEmail ? "Admin" : "User";
 
     if (isAdminEmail) {
       const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
       setDocumentNonBlocking(adminRoleRef, { 
         id: firebaseUser.uid,
-        email: firebaseUser.email,
+        email: email,
         assignedAt: new Date().toISOString()
       }, { merge: true });
     }
@@ -97,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!userDoc.exists()) {
       const newProfile: UserProfile = {
         id: firebaseUser.uid,
-        email: firebaseUser.email || "",
-        displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || (isAdminEmail ? "Super Admin" : "User"),
+        email: email || "",
+        displayName: firebaseUser.displayName || email?.split('@')[0] || (isAdminEmail ? "Super Admin" : "User"),
         photoURL: firebaseUser.photoURL || "",
         role: role,
         isBlocked: false,
@@ -107,9 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       
       setDocumentNonBlocking(userRef, newProfile, { merge: true });
-      // Profile will be set by the onSnapshot listener
     } else {
       const existingData = userDoc.data() as UserProfile;
+      // Ensure role is up-to-date for the special admin email
       if (isAdminEmail && existingData.role !== "Admin") {
         setDocumentNonBlocking(userRef, { role: "Admin", isSetupComplete: true }, { merge: true });
       }
