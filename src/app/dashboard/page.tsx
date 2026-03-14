@@ -47,10 +47,15 @@ export default function DashboardPage() {
   const { data: userVisits, isLoading: visitsLoading } = useCollection(userVisitsQuery);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (!loading) {
+      if (!user) {
+        router.push("/login");
+      } else if (profile?.role === "Admin") {
+        // Restricted access: Admins are redirected to the Admin Console
+        router.push("/admin");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, profile, loading, router]);
 
   const handleSubmit = async () => {
     if (!reason || !profile) return;
@@ -89,7 +94,7 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
-  if (loading || !user) {
+  if (loading || !user || profile?.role === "Admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/20">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -140,14 +145,6 @@ export default function DashboardPage() {
             <h1 className="font-bold text-lg sm:text-xl tracking-tight text-primary sm:hidden font-headline">NEU LIBRARY</h1>
           </div>
           <div className="flex items-center gap-3 sm:gap-6">
-            {profile?.role === "Admin" && (
-              <Button variant="outline" size="sm" asChild className="hidden md:flex gap-2 border-primary text-primary hover:bg-primary/5 rounded-full font-bold">
-                <Link href="/admin">
-                  <LayoutDashboard className="w-4 h-4" />
-                  Admin Console
-                </Link>
-              </Button>
-            )}
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-sm font-bold">{profile?.displayName}</span>
               <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">{profile?.collegeOrOffice}</span>
