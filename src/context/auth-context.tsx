@@ -50,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let unsubscribe: () => void = () => {};
 
     if (user && !isUserLoading) {
-      // Corrected to use the 'users' collection
       const userRef = doc(db, "users", user.uid);
       
       unsubscribe = onSnapshot(userRef, (docSnap) => {
@@ -92,7 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, { merge: true });
     }
 
-    // Corrected to use the 'users' collection
     const userRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userRef);
     

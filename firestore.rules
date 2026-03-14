@@ -15,26 +15,24 @@ service cloud.firestore {
     }
 
     function isNEUEmail() {
-      return isSignedIn() && request.auth.token.email.lower().endsWith('@neu.edu.ph');
+      return isSignedIn() && 
+             request.auth.token.email != null && 
+             request.auth.token.email.lower().endsWith('@neu.edu.ph');
     }
 
     /**
-     * isAdmin: Comprehensive check for administrative rights.
-     * We allow access if:
-     * 1. The email is exactly the super admin email.
-     * 2. The user has a record in the roles_admin lookup collection.
-     * 3. The user profile in /users has the role field set to 'Admin'.
+     * isAdmin: Direct and efficient check for administrative rights.
+     * We prioritize the hardcoded super admin email for immediate access.
      */
     function isAdmin() {
-      return isNEUEmail() && (
+      return isSignedIn() && (
         request.auth.token.email == "admin1@neu.edu.ph" ||
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'User') == 'Admin')
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))
       );
     }
 
     function isNotBlocked(userId) {
+      // Safe check for blocked status, defaulting to allowed if profile doesn't exist yet
       return !exists(/databases/$(database)/documents/users/$(userId)) || 
              get(/databases/$(database)/documents/users/$(userId)).data.get('isBlocked', false) == false;
     }
@@ -48,7 +46,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // New targeted paths: /users and /visit_logs
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -58,6 +55,7 @@ service cloud.firestore {
     }
 
     match /visit_logs/{visitId} {
+      // Allow admins to see all logs, and users to see their own
       allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn() 
                     && request.resource.data.userId == request.auth.uid
