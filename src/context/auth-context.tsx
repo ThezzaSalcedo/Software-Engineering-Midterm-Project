@@ -79,9 +79,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userRef = doc(db, "userProfiles", firebaseUser.uid);
     const userDoc = await getDoc(userRef);
     
-    // Check if this specific email should be an admin
+    // Check if this specific email is the designated Super Admin
     const isAdminEmail = firebaseUser.email === "admin1@neu.edu.ph";
     const role: UserRole = isAdminEmail ? "Admin" : "User";
+
+    // If this is the designated admin email, we MUST ensure the record in roles_admin exists.
+    // This is the source of truth for administrative authorization in security rules.
+    if (isAdminEmail) {
+      const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
+      setDocumentNonBlocking(adminRoleRef, { 
+        id: firebaseUser.uid,
+        email: firebaseUser.email,
+        assignedAt: new Date().toISOString()
+      }, { merge: true });
+    }
 
     if (!userDoc.exists()) {
       const newProfile: UserProfile = {
@@ -95,28 +106,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       
       setDocumentNonBlocking(userRef, newProfile, { merge: true });
-      
-      // If admin, we also need to create the record in roles_admin for security rules
-      if (isAdminEmail) {
-        const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
-        setDocumentNonBlocking(adminRoleRef, { id: firebaseUser.uid }, { merge: true });
-      }
-
       setProfile(newProfile);
     } else {
       const existingData = userDoc.data() as UserProfile;
-      // Ensure admin record exists if it's the admin email
-      if (isAdminEmail) {
-        const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
-        setDocumentNonBlocking(adminRoleRef, { id: firebaseUser.uid }, { merge: true });
-        
-        if (existingData.role !== "Admin") {
-          const updated = { ...existingData, role: "Admin" as UserRole, isSetupComplete: true };
-          setDocumentNonBlocking(userRef, updated, { merge: true });
-          setProfile(updated);
-          return;
-        }
+      
+      // If the email is the admin email but the profile isn't marked as admin, update it.
+      if (isAdminEmail && existingData.role !== "Admin") {
+        const updated = { ...existingData, role: "Admin" as UserRole, isSetupComplete: true };
+        setDocumentNonBlocking(userRef, updated, { merge: true });
+        setProfile(updated);
+        return;
       }
+      
       setProfile(existingData);
     }
   };
