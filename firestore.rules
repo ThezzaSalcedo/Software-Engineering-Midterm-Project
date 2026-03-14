@@ -15,15 +15,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Robust admin check: checks for existence in roles_admin OR matches the super admin email.
+      // Direct email check is the most resilient way to authorize the bootstrap admin.
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        request.auth.token.email == "admin1@neu.edu.ph"
+        request.auth.token.email == "admin1@neu.edu.ph" ||
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))
       );
     }
 
     function isNotBlocked(userId) {
-      // Use .get() with a default value to safely handle cases where the isBlocked field might be missing.
+      // Safely check blocking status with a default fallback.
       return get(/databases/$(database)/documents/userProfiles/$(userId)).data.get('isBlocked', false) == false;
     }
 
@@ -32,6 +32,7 @@ service cloud.firestore {
     match /roles_admin/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
+      // Allow the specific admin email to bootstrap their own administrative record.
       allow create, update: if isSignedIn() 
                              && request.auth.uid == userId 
                              && request.auth.token.email == "admin1@neu.edu.ph";
@@ -45,22 +46,23 @@ service cloud.firestore {
       allow update: if (isOwner(userId) || isAdmin()) 
                     && request.resource.data.id == resource.data.id;
       allow delete: if isAdmin();
+
+      match /libraryVisits/{visitId} {
+        allow get: if isOwner(userId) || isAdmin();
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) 
+                      && request.resource.data.userId == userId
+                      && isNotBlocked(userId);
+        allow update: if isOwner(userId) 
+                      && request.resource.data.userId == resource.data.userId
+                      && isNotBlocked(userId);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
     }
 
-    match /userProfiles/{userId}/libraryVisits/{visitId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) 
-                    && request.resource.data.userId == userId
-                    && isNotBlocked(userId);
-      allow update: if isOwner(userId) 
-                    && request.resource.data.userId == resource.data.userId
-                    && isNotBlocked(userId);
-      allow delete: if isOwner(userId) || isAdmin();
-    }
-
+    // This specific rule handles 'collectionGroup' queries across all 'libraryVisits' sub-collections.
     match /{path=**}/libraryVisits/{visitId} {
-      allow list: if isAdmin();
+      allow read: if isAdmin();
     }
   }
 }
