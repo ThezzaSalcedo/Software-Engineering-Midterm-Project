@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -14,7 +13,7 @@ import {
   Calendar as CalendarIcon, RotateCcw, Loader2, 
   ShieldAlert, GraduationCap, Building2,
   PieChart as PieChartIcon, BarChart as BarChartIcon,
-  ChevronDown, ChevronUp, Ban, UserCheck
+  ChevronDown, ChevronUp, Ban, UserCheck, Download
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
@@ -29,6 +28,8 @@ import {
   Pie, PieChart, Cell, Legend 
 } from "recharts";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface VisitRecord {
   id: string;
@@ -194,6 +195,65 @@ export default function AdminPage() {
     return { userTypeData, reasonData };
   }, [stats, visits]);
 
+  const generateDailyPDF = () => {
+    if (profile?.email !== 'admin1@neu.edu.ph') return;
+
+    const doc = new jsPDF();
+    const today = new Date();
+    const dateStr = format(today, "PPPP");
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(26, 35, 126); // Primary Color
+    doc.text("NEU Library Daily Activity Report", 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Report Date: ${dateStr}`, 14, 30);
+
+    // Filter today's visits
+    const todayVisits = visits.filter(v => isToday(new Date(v.visitDateTime)));
+    const todayStudents = todayVisits.filter(v => v.userType === 'Student').length;
+    const todayFaculty = todayVisits.filter(v => v.userType === 'Faculty').length;
+
+    // Summary Section
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text("Daily Summary", 14, 45);
+    
+    autoTable(doc, {
+      startY: 50,
+      head: [['Metric', 'Count']],
+      body: [
+        ['Total Visitors', todayVisits.length.toString()],
+        ['Student Count', todayStudents.toString()],
+        ['Professor (Faculty) Count', todayFaculty.toString()],
+      ],
+      theme: 'striped',
+      headStyles: { fillStyle: 'hsl(234, 45%, 25%)' }
+    });
+
+    // Detailed Logs Section
+    doc.text("Detailed Activity Log", 14, (doc as any).lastAutoTable.finalY + 15);
+    
+    const tableData = todayVisits.map(v => [
+      v.displayName || "N/A",
+      v.userType || "N/A",
+      v.reasonForVisit,
+      format(new Date(v.visitDateTime), "h:mm a")
+    ]);
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 20,
+      head: [['Visitor Name', 'Type', 'Reason for Visit', 'Time']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [26, 35, 126] }
+    });
+
+    doc.save(`NEU_Library_Report_${format(today, "yyyy-MM-dd")}.pdf`);
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -214,6 +274,8 @@ export default function AdminPage() {
     );
   }
 
+  const isSuperAdmin = profile?.email === 'admin1@neu.edu.ph';
+
   return (
     <div className="min-h-screen bg-muted/5 font-body">
       <header className="border-b bg-primary text-primary-foreground p-4 shadow-sm sticky top-0 z-50">
@@ -222,10 +284,22 @@ export default function AdminPage() {
             <BarChart3 className="w-6 h-6" />
             <h1 className="text-xl font-bold tracking-tight uppercase font-headline">NEU Library Admin</h1>
           </div>
-          <Button variant="secondary" onClick={handleLogout} className="gap-2 font-semibold rounded-xl">
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {isSuperAdmin && (
+              <Button 
+                variant="outline" 
+                onClick={generateDailyPDF} 
+                className="gap-2 font-bold rounded-xl bg-white text-primary border-none hover:bg-white/90 hidden sm:flex"
+              >
+                <Download className="w-4 h-4" />
+                Download Daily Report
+              </Button>
+            )}
+            <Button variant="secondary" onClick={handleLogout} className="gap-2 font-semibold rounded-xl">
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          </div>
         </div>
       </header>
 
