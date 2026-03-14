@@ -16,7 +16,7 @@ service cloud.firestore {
 
     /**
      * isAdmin: Determines if the current user has administrative privileges.
-     * We use a multi-layered check:
+     * We use a robust multi-layered check:
      * 1. Direct email check (Immediate authorization for Super Admin).
      * 2. Check for the user's record in the dedicated roles_admin collection.
      * 3. Check the 'role' field in their UserProfile document.
