@@ -18,32 +18,31 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      showWeekNumber={true}
-      className={cn("p-3 bg-[#121212] text-white rounded-lg", className)}
+      className={cn("p-4 bg-white text-foreground rounded-2xl shadow-sm border", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-between pt-1 relative items-center w-full px-2",
-        caption_label: "text-xl font-bold",
+        caption: "flex justify-between pt-1 relative items-center w-full px-2 mb-4",
+        caption_label: "text-lg font-bold tracking-tight",
         nav: "flex items-center space-x-1",
         nav_button: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-7 w-7 bg-transparent p-0 opacity-80 hover:opacity-100 hover:bg-white/10 text-white"
+          "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 hover:bg-muted text-foreground transition-all"
         ),
-        nav_button_previous: "",
-        nav_button_next: "",
+        nav_button_previous: "absolute left-1",
+        nav_button_next: "absolute right-1",
         table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] uppercase",
-        row: "flex w-full mt-2",
+        head_row: "flex justify-between w-full mb-2",
+        head_cell: "text-muted-foreground w-9 font-bold text-[0.75rem] uppercase text-center",
+        row: "flex w-full mt-2 justify-between",
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-white/10 rounded-full"
+          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-muted rounded-full transition-colors"
         ),
         day_range_end: "day-range-end",
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full",
+          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full font-bold",
         day_today: "bg-accent/20 text-accent font-bold",
         day_outside:
           "day-outside text-muted-foreground/30 aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
@@ -51,7 +50,6 @@ function Calendar({
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
-        weeknumber: "text-muted-foreground/50 w-9 font-normal text-[0.8rem] flex items-center justify-center mr-2",
         ...classNames,
       }}
       components={{
