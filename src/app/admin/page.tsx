@@ -8,7 +8,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2, ShieldAlert } from "lucide-react";
+import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2, ShieldAlert, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,6 +35,7 @@ export default function AdminPage() {
     from: subDays(new Date(), 7),
     to: new Date(),
   });
+  const [month, setMonth] = useState<Date>(new Date());
 
   useEffect(() => {
     if (!authLoading) {
@@ -61,6 +62,22 @@ export default function AdminPage() {
   const handleLogout = async () => {
     await logout();
     router.push("/login");
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    const defaultRange = {
+      from: subDays(new Date(), 7),
+      to: new Date(),
+    };
+    setDate(defaultRange);
+    setMonth(new Date());
+  };
+
+  const handleGoToToday = () => {
+    const today = new Date();
+    setDate({ from: today, to: today });
+    setMonth(today);
   };
 
   const filteredVisits = useMemo(() => {
@@ -185,31 +202,44 @@ export default function AdminPage() {
 
               <div className="w-full lg:w-auto space-y-2">
                 <label className="text-xs font-bold uppercase text-muted-foreground">Date Range Filter</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full lg:w-[300px] justify-start text-left h-12 rounded-xl">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date?.from ? (
-                        date.to ? (
-                          <>{format(date.from, "LLL dd")} - {format(date.to, "LLL dd")}</>
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full lg:w-[300px] justify-start text-left h-12 rounded-xl">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date?.from ? (
+                          date.to ? (
+                            <>{format(date.from, "LLL dd")} - {format(date.to, "LLL dd")}</>
+                          ) : (
+                            format(date.from, "LLL dd")
+                          )
                         ) : (
-                          format(date.from, "LLL dd")
-                        )
-                      ) : (
-                        <span>Pick range</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="start">
-                    <Calendar 
-                      mode="range" 
-                      selected={date} 
-                      onSelect={setDate} 
-                      numberOfMonths={1} 
-                      className="rounded-xl"
-                    />
-                  </PopoverContent>
-                </Popover>
+                          <span>Pick range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="start">
+                      <Calendar 
+                        mode="range" 
+                        selected={date} 
+                        onSelect={setDate} 
+                        month={month}
+                        onMonthChange={setMonth}
+                        numberOfMonths={1} 
+                        onTodayClick={handleGoToToday}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-12 w-12 rounded-xl border border-dashed text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                    onClick={handleResetFilters}
+                    title="Reset Filters"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
