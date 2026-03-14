@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -75,6 +74,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+      {/* Brand Section */}
       <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 md:px-20 lg:px-24 py-12 lg:py-0 space-y-8 md:space-y-12 bg-white">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 md:w-16 md:h-16 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
@@ -115,15 +115,16 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* Login Form Section */}
       <div className="flex-1 bg-muted/20 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <Card className="w-full max-w-md overflow-hidden shadow-2xl border-none">
           <div className="relative h-48 sm:h-56 w-full bg-[#1A237E]">
              <Image 
-                src="https://storage.googleapis.com/test-872f2.appspot.com/a9c1e95c-37e4-42b7-872e-067964402636/IMG_0047.jpg" 
+                src="https://picsum.photos/seed/library-interior/800/600" 
                 fill 
                 className="object-cover opacity-60 mix-blend-overlay" 
-                alt="New Era University Library Exterior"
-                data-ai-hint="university library"
+                alt="New Era University Library Interior"
+                data-ai-hint="library interior"
               />
              <div className="absolute bottom-6 left-8">
                <div className="w-8 h-1 bg-accent mb-2" />
@@ -156,7 +157,7 @@ export default function LoginPage() {
                   fill="#EA4335"
                 />
               </svg>
-              Log in with Google
+              Sign in with Google
             </Button>
 
             <div className="relative">
@@ -164,7 +165,7 @@ export default function LoginPage() {
                 <span className="w-full border-t border-muted-foreground/20" />
               </div>
               <div className="relative flex justify-center text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">
-                <span className="bg-white px-3 text-muted-foreground">Or Email Access</span>
+                <span className="bg-white px-3 text-muted-foreground">Or Institutional Email</span>
               </div>
             </div>
 
@@ -218,6 +219,7 @@ export default function LoginPage() {
         </Card>
       </div>
 
+      {/* Floating Logo Ornament */}
       <div className="fixed bottom-6 left-6 z-50 hidden sm:flex">
         <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg shadow-xl">
           N
