@@ -8,9 +8,9 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2, ShieldAlert, RotateCcw } from "lucide-react";
+import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2, ShieldAlert, RotateCcw, CalendarDays, History } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,7 @@ export default function AdminPage() {
     return query(
       collection(db, "visit_logs"),
       orderBy("visitDateTime", "desc"),
-      limit(500)
+      limit(1000)
     );
   }, [db, user, profile?.role]);
 
@@ -80,6 +80,25 @@ export default function AdminPage() {
     setMonth(today);
   };
 
+  const handleSetPeriod = (period: 'today' | 'week' | 'month') => {
+    const now = new Date();
+    let from: Date;
+    let to: Date = now;
+
+    if (period === 'today') {
+      from = startOfDay(now);
+      to = endOfDay(now);
+    } else if (period === 'week') {
+      from = startOfWeek(now, { weekStartsOn: 0 }); // Sunday
+      to = endOfWeek(now, { weekStartsOn: 0 });
+    } else {
+      from = startOfMonth(now);
+      to = endOfMonth(now);
+    }
+    setDate({ from, to });
+    setMonth(from);
+  };
+
   const filteredVisits = useMemo(() => {
     return visits.filter(v => {
       const searchLower = searchTerm.toLowerCase();
@@ -100,15 +119,22 @@ export default function AdminPage() {
   }, [visits, searchTerm, date]);
 
   const stats = useMemo(() => {
+    const now = new Date();
     const todayCount = visits.filter(v => isToday(new Date(v.visitDateTime))).length;
-    const periodTotal = filteredVisits.length;
+    const weekCount = visits.filter(v => {
+      const d = new Date(v.visitDateTime);
+      return isWithinInterval(d, { start: startOfWeek(now), end: endOfWeek(now) });
+    }).length;
+    const monthCount = visits.filter(v => isSameMonth(new Date(v.visitDateTime), now)).length;
     
     return {
       todayCount,
-      periodTotal,
+      weekCount,
+      monthCount,
+      periodTotal: filteredVisits.length,
       periodLabel: date?.from && date?.to 
         ? `${format(date.from, "MMM d")} - ${format(date.to, "MMM d")}`
-        : "Selected Period"
+        : date?.from ? format(date.from, "MMM d, yyyy") : "Selected Period"
     };
   }, [visits, filteredVisits, date]);
 
@@ -148,38 +174,45 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 py-8 space-y-8">
-        {visitsError && (
-          <Card className="border-destructive/30 bg-destructive/5">
-            <CardContent className="p-4 flex items-center gap-4 text-destructive">
-              <ShieldAlert className="w-6 h-6 shrink-0" />
-              <div className="text-sm">
-                <p className="font-bold">Permission Synchronization</p>
-                <p className="opacity-80">Initial administrative credentials are being validated. Please refresh in a few moments.</p>
-              </div>
-              <Button size="sm" variant="outline" className="ml-auto" onClick={() => window.location.reload()}>Refresh</Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="shadow-sm border-none bg-white rounded-2xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="shadow-sm border-none bg-white rounded-2xl cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" onClick={() => handleSetPeriod('today')}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Visitors Today</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Today</CardTitle>
               <Activity className="w-4 h-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-black text-primary">{stats.todayCount}</div>
+              <div className="text-3xl font-black text-primary">{stats.todayCount}</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-sm border-none bg-white rounded-2xl cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" onClick={() => handleSetPeriod('week')}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">This Week</CardTitle>
+              <CalendarDays className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-primary">{stats.weekCount}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-none bg-white rounded-2xl cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" onClick={() => handleSetPeriod('month')}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">This Month</CardTitle>
+              <History className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-primary">{stats.monthCount}</div>
             </CardContent>
           </Card>
           
           <Card className="shadow-sm border-none bg-primary text-primary-foreground rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium opacity-90">Period Analytics</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-wider opacity-90">Filtered View</CardTitle>
               <Users className="w-4 h-4 opacity-70" />
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-black">{stats.periodTotal}</div>
-              <p className="text-xs opacity-70 mt-1">Total during {stats.periodLabel}</p>
+              <div className="text-3xl font-black">{stats.periodTotal}</div>
+              <p className="text-[10px] opacity-70 mt-1 uppercase font-bold">{stats.periodLabel}</p>
             </CardContent>
           </Card>
         </div>
@@ -201,11 +234,11 @@ export default function AdminPage() {
               </div>
 
               <div className="w-full lg:w-auto space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Date Range Filter</label>
+                <label className="text-xs font-bold uppercase text-muted-foreground">Date Filter</label>
                 <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full lg:w-[300px] justify-start text-left h-12 rounded-xl">
+                      <Button variant="outline" className="w-full lg:w-[260px] justify-start text-left h-12 rounded-xl border-muted/50">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {date?.from ? (
                           date.to ? (
@@ -283,7 +316,12 @@ export default function AdminPage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-20 text-muted-foreground">
-                        No records found.
+                        {visitsLoading ? (
+                           <div className="flex flex-col items-center gap-2">
+                             <Loader2 className="w-6 h-6 animate-spin" />
+                             <span className="text-xs">Loading records...</span>
+                           </div>
+                        ) : "No records found for the selected period."}
                       </TableCell>
                     </TableRow>
                   )}

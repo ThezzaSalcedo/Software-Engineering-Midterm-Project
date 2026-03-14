@@ -26,20 +26,20 @@ function Calendar({
         classNames={{
           months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
           month: "space-y-4",
-          caption: "flex justify-between pt-1 relative items-center w-full px-2 mb-4",
+          caption: "flex justify-center pt-1 relative items-center w-full mb-4 px-8",
           caption_label: "text-lg font-bold tracking-tight",
           nav: "flex items-center",
           nav_button: cn(
             buttonVariants({ variant: "ghost" }),
-            "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 hover:bg-muted text-foreground transition-all"
+            "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 hover:bg-muted text-foreground transition-all z-10"
           ),
-          nav_button_previous: "absolute left-1",
-          nav_button_next: "absolute right-1",
+          nav_button_previous: "absolute left-0",
+          nav_button_next: "absolute right-0",
           table: "w-full border-collapse",
           head_row: "flex w-full mb-2",
-          head_cell: "text-muted-foreground flex-1 font-bold text-[0.75rem] uppercase text-center",
+          head_cell: "text-muted-foreground w-[14.28%] font-bold text-[0.7rem] uppercase text-center",
           row: "flex w-full mt-2",
-          cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1 flex justify-center items-center h-9",
+          cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 w-[14.28%] flex justify-center items-center h-9",
           day: cn(
             buttonVariants({ variant: "ghost" }),
             "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-muted rounded-full transition-colors"
