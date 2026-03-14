@@ -75,7 +75,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who made this visit. (Relationship: UserProfile 1:N LibraryVisit)"
+          "description": "Reference to the UserProfile who made this visit."
         },
         "displayName": {
           "type": "string",
@@ -116,7 +116,7 @@
   "firestore": {
     "structure": [
       {
-        "path": "/userProfiles/{userId}",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
           "schema": {
@@ -126,24 +126,20 @@
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user, matching their Firebase Authentication UID."
+              "description": "The unique identifier for the user."
             }
           ]
         }
       },
       {
-        "path": "/userProfiles/{userId}/libraryVisits/{visitId}",
+        "path": "/visit_logs/{visitId}",
         "definition": {
           "entityName": "LibraryVisit",
           "schema": {
             "$ref": "#/backend/entities/LibraryVisit"
           },
-          "description": "Stores individual library visit records.",
+          "description": "Stores individual library visit records in a flat collection for administrative efficiency.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who made the visit."
-            },
             {
               "name": "visitId",
               "description": "The unique identifier for a specific library visit."
@@ -163,7 +159,7 @@
               "assignedAt": { "type": "string", "format": "date-time" }
             }
           },
-          "description": "Lookup collection to verify administrative privileges securely.",
+          "description": "Lookup collection to verify administrative privileges.",
           "params": [
             { "name": "userId", "description": "The user's UID." }
           ]

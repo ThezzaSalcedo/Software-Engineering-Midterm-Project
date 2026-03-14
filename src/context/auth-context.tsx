@@ -50,9 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let unsubscribe: () => void = () => {};
 
     if (user && !isUserLoading) {
-      const userRef = doc(db, "userProfiles", user.uid);
+      // Corrected to use the 'users' collection
+      const userRef = doc(db, "users", user.uid);
       
-      // Use onSnapshot for real-time updates (important for blocking/role changes)
       unsubscribe = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           setProfile(docSnap.data() as UserProfile);
@@ -61,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setLoading(false);
       }, (error) => {
-        console.error("Profile snapshot error:", error);
         setLoading(false);
       });
     } else if (!isUserLoading) {
@@ -83,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isAdminEmail = email === "admin1@neu.edu.ph";
     const role: UserRole = isAdminEmail ? "Admin" : "User";
 
+    // Set administrative status immediately in the lookup collection
     if (isAdminEmail) {
       const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
       setDocumentNonBlocking(adminRoleRef, { 
@@ -92,7 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, { merge: true });
     }
 
-    const userRef = doc(db, "userProfiles", firebaseUser.uid);
+    // Corrected to use the 'users' collection
+    const userRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userRef);
     
     if (!userDoc.exists()) {
@@ -110,7 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setDocumentNonBlocking(userRef, newProfile, { merge: true });
     } else {
       const existingData = userDoc.data() as UserProfile;
-      // Ensure role is up-to-date for the special admin email
       if (isAdminEmail && existingData.role !== "Admin") {
         setDocumentNonBlocking(userRef, { role: "Admin", isSetupComplete: true }, { merge: true });
       }
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = async (data: Partial<UserProfile>) => {
     if (!user || !profile) return;
-    const userRef = doc(db, "userProfiles", user.uid);
+    const userRef = doc(db, "users", user.uid);
     setDocumentNonBlocking(userRef, data, { merge: true });
   };
 

@@ -14,67 +14,55 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isNEUEmail() {
+      return isSignedIn() && request.auth.token.email.lower().endsWith('@neu.edu.ph');
+    }
+
     /**
-     * isAdmin: Determines if the current user has administrative privileges.
-     * We use a robust multi-layered check:
-     * 1. Direct email check (Immediate authorization for Super Admin).
-     * 2. Check for the user's record in the dedicated roles_admin collection.
-     * 3. Check the 'role' field in their UserProfile document.
+     * isAdmin: Comprehensive check for administrative rights.
+     * We allow access if:
+     * 1. The email is exactly the super admin email.
+     * 2. The user has a record in the roles_admin lookup collection.
+     * 3. The user profile in /users has the role field set to 'Admin'.
      */
     function isAdmin() {
-      return isSignedIn() && (
+      return isNEUEmail() && (
         request.auth.token.email == "admin1@neu.edu.ph" ||
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        (exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.get('role', 'User') == 'Admin')
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'User') == 'Admin')
       );
     }
 
     function isNotBlocked(userId) {
-      // Safely check blocking status. If the profile doesn't exist yet, they aren't blocked.
-      return !exists(/databases/$(database)/documents/userProfiles/$(userId)) || 
-             get(/databases/$(database)/documents/userProfiles/$(userId)).data.get('isBlocked', false) == false;
+      return !exists(/databases/$(database)/documents/users/$(userId)) || 
+             get(/databases/$(database)/documents/users/$(userId)).data.get('isBlocked', false) == false;
     }
 
     // --- COLLECTION RULES ---
 
-    // Administrative roles registration
     match /roles_admin/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
-      // Allow the specific admin email to bootstrap their own administrative record.
-      allow create, update: if isSignedIn() 
-                             && request.auth.uid == userId 
-                             && request.auth.token.email == "admin1@neu.edu.ph";
+      allow create, update: if isSignedIn() && request.auth.token.email == "admin1@neu.edu.ph";
       allow delete: if false;
     }
 
-    // User profiles and their sub-collections
-    match /userProfiles/{userId} {
+    // New targeted paths: /users and /visit_logs
+    match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if (isOwner(userId) || isAdmin()) 
-                    && request.resource.data.id == resource.data.id;
+      allow update: if (isOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
       allow delete: if isAdmin();
-
-      match /libraryVisits/{visitId} {
-        allow get: if isOwner(userId) || isAdmin();
-        allow list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) 
-                      && request.resource.data.userId == userId
-                      && isNotBlocked(userId);
-        allow update: if isOwner(userId) 
-                      && request.resource.data.userId == resource.data.userId
-                      && isNotBlocked(userId);
-        allow delete: if isOwner(userId) || isAdmin();
-      }
     }
 
-    // Collection Group rule for 'libraryVisits' across all user profiles.
-    // This MUST match the isAdmin() logic to allow the collectionGroup query.
-    match /{path=**}/libraryVisits/{visitId} {
-      allow read: if isAdmin();
+    match /visit_logs/{visitId} {
+      allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() 
+                    && request.resource.data.userId == request.auth.uid
+                    && isNotBlocked(request.auth.uid);
+      allow delete: if isAdmin();
     }
   }
 }

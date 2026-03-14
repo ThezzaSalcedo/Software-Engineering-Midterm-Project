@@ -13,7 +13,6 @@ import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X
 import { collection } from "firebase/firestore";
 import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 const VISIT_REASONS = [
   "Reading",
@@ -55,7 +54,8 @@ export default function DashboardPage() {
 
     setIsSubmitting(true);
     
-    const visitsCollection = collection(db, "userProfiles", profile.id, "libraryVisits");
+    // Corrected to use the flat 'visit_logs' collection
+    const visitsCollection = collection(db, "visit_logs");
     
     addDocumentNonBlocking(visitsCollection, {
       userId: profile.id,
@@ -70,7 +70,6 @@ export default function DashboardPage() {
     setShowSuccess(true);
     setIsSubmitting(false);
 
-    // Auto-hide success message after 5 seconds
     setTimeout(() => setShowSuccess(false), 5000);
   };
 
@@ -83,7 +82,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/20 relative">
-      {/* Success Overlay */}
       {showSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-primary/20 backdrop-blur-sm animate-in fade-in zoom-in duration-300 p-4">
           <Card className="w-full max-w-md shadow-2xl border-none overflow-hidden text-center relative">
@@ -118,7 +116,7 @@ export default function DashboardPage() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <h1 className="font-bold text-xl tracking-tight text-primary">NEU CampusConnect</h1>
+            <h1 className="font-bold text-xl tracking-tight text-primary">NEW ERA UNIVERSITY LIBRARY</h1>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex flex-col items-end">
@@ -231,9 +229,6 @@ export default function DashboardPage() {
                      <span className="text-muted-foreground">Saturday</span>
                      <span className="font-bold">09:00 - 17:00</span>
                    </div>
-                   <div className="pt-2 border-t">
-                     <p className="text-[10px] text-muted-foreground italic">Current: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                   </div>
                  </CardContent>
               </Card>
             </div>
@@ -243,12 +238,7 @@ export default function DashboardPage() {
       
       <footer className="border-t py-8 bg-white/50 mt-auto">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-             <div className="w-4 h-4 bg-primary/20 rounded-full flex items-center justify-center">
-                <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-             </div>
-             <span className="font-bold tracking-tight text-primary/60">NEU LIBRARY SYSTEM V2.0</span>
-          </div>
+          <p className="font-bold tracking-tight text-primary/60 uppercase">NEU LIBRARY SYSTEM V2.0</p>
           <p>&copy; {new Date().getFullYear()} New Era University. All institutional rights reserved.</p>
         </div>
       </footer>
