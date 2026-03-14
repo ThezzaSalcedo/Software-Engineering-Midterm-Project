@@ -15,12 +15,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      // Robust admin check: checks for existence in roles_admin OR matches the super admin email.
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
+        request.auth.token.email == "admin1@neu.edu.ph"
+      );
     }
 
     function isNotBlocked(userId) {
-      // Use .get() with a default value to safely handle cases where the isBlocked field might be missing from the profile document.
-      // If isBlocked is not present, it defaults to false, permitting the operation.
+      // Use .get() with a default value to safely handle cases where the isBlocked field might be missing.
       return get(/databases/$(database)/documents/userProfiles/$(userId)).data.get('isBlocked', false) == false;
     }
 

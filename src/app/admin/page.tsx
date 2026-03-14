@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { collectionGroup, query, orderBy, limit, where } from "firebase/firestore";
+import { collectionGroup, query, orderBy, limit } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -50,13 +50,14 @@ export default function AdminPage() {
 
   // Use the standard useCollection hook for visitor logs
   const visitorLogsQuery = useMemoFirebase(() => {
-    if (!db || !profile || profile.role !== "Admin") return null;
+    // Only attempt to query if the user is authenticated and verified as an Admin
+    if (!db || !user || !profile || profile.role !== "Admin") return null;
     return query(
       collectionGroup(db, "libraryVisits"),
       orderBy("visitDateTime", "desc"),
       limit(500)
     );
-  }, [db, profile]);
+  }, [db, user, profile]);
 
   const { data: visitsData, isLoading: visitsLoading } = useCollection<VisitRecord>(visitorLogsQuery);
   const visits = (visitsData || []) as VisitRecord[];
@@ -100,7 +101,7 @@ export default function AdminPage() {
     };
   }, [visits, filteredVisits, date]);
 
-  if (authLoading || (visitsLoading && visits.length === 0)) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -254,70 +255,78 @@ export default function AdminPage() {
              <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-bold">Entry Logs</CardTitle>
-                  <CardDescription className="text-xs">Displaying {filteredVisits.length} records for the selected period.</CardDescription>
+                  <CardDescription className="text-xs">
+                    {visitsLoading ? "Loading entries..." : `Displaying ${filteredVisits.length} records for the selected period.`}
+                  </CardDescription>
                 </div>
              </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent border-none">
-                    <TableHead className="font-bold py-4 px-6">Visitor Profile</TableHead>
-                    <TableHead className="font-bold py-4 px-6">College/Office</TableHead>
-                    <TableHead className="font-bold py-4 px-6">Purpose</TableHead>
-                    <TableHead className="text-right font-bold py-4 px-6">Time of Entry</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredVisits.length > 0 ? (
-                    filteredVisits.map((visit) => (
-                      <TableRow key={visit.id} className="hover:bg-muted/10 transition-colors border-b last:border-0">
-                        <TableCell className="py-4 px-6">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-foreground text-sm">{visit.displayName || "Unknown Visitor"}</span>
-                            <span className="text-[10px] text-muted-foreground tracking-tight">{visit.email}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 px-6">
-                          <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-md text-muted-foreground">
-                            {visit.collegeOrOffice || "N/A"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="py-4 px-6 max-w-xs">
-                          <span className="text-xs text-foreground italic bg-accent/5 px-2 py-1 rounded-lg border border-accent/10">
-                             {visit.reasonForVisit}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right py-4 px-6">
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-bold text-primary">
-                              {visit.visitDateTime ? format(new Date(visit.visitDateTime), "h:mm a") : "N/A"}
+              {visitsLoading && visits.length === 0 ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="hover:bg-transparent border-none">
+                      <TableHead className="font-bold py-4 px-6">Visitor Profile</TableHead>
+                      <TableHead className="font-bold py-4 px-6">College/Office</TableHead>
+                      <TableHead className="font-bold py-4 px-6">Purpose</TableHead>
+                      <TableHead className="text-right font-bold py-4 px-6">Time of Entry</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVisits.length > 0 ? (
+                      filteredVisits.map((visit) => (
+                        <TableRow key={visit.id} className="hover:bg-muted/10 transition-colors border-b last:border-0">
+                          <TableCell className="py-4 px-6">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-foreground text-sm">{visit.displayName || "Unknown Visitor"}</span>
+                              <span className="text-[10px] text-muted-foreground tracking-tight">{visit.email}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 px-6">
+                            <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-md text-muted-foreground">
+                              {visit.collegeOrOffice || "N/A"}
                             </span>
-                            <span className="text-[9px] text-muted-foreground uppercase font-black">
-                              {visit.visitDateTime ? format(new Date(visit.visitDateTime), "MMM dd, yyyy") : ""}
+                          </TableCell>
+                          <TableCell className="py-4 px-6 max-w-xs">
+                            <span className="text-xs text-foreground italic bg-accent/5 px-2 py-1 rounded-lg border border-accent/10">
+                               {visit.reasonForVisit}
                             </span>
+                          </TableCell>
+                          <TableCell className="text-right py-4 px-6">
+                            <div className="flex flex-col items-end">
+                              <span className="text-xs font-bold text-primary">
+                                {visit.visitDateTime ? format(new Date(visit.visitDateTime), "h:mm a") : "N/A"}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground uppercase font-black">
+                                {visit.visitDateTime ? format(new Date(visit.visitDateTime), "MMM dd, yyyy") : ""}
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-20 text-muted-foreground">
+                          <div className="flex flex-col items-center gap-4">
+                            <div className="p-4 bg-muted rounded-full">
+                              <Search className="w-8 h-8 opacity-20" />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-lg font-bold text-foreground">No records found</p>
+                              <p className="text-sm">Try adjusting your search terms or date range filters.</p>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-20 text-muted-foreground">
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="p-4 bg-muted rounded-full">
-                            <Search className="w-8 h-8 opacity-20" />
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-lg font-bold text-foreground">No records found</p>
-                            <p className="text-sm">Try adjusting your search terms or date range filters.</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </CardContent>
         </Card>
