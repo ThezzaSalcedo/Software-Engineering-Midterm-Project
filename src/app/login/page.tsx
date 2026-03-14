@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -75,7 +74,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
-      {/* Left Column: Branding - Responsive padding and hidden on very small screens if needed */}
       <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 md:px-20 lg:px-24 py-12 lg:py-0 space-y-8 md:space-y-12 bg-white">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 md:w-16 md:h-16 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
@@ -116,16 +114,15 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Column: Login Card - Responsive centering and width */}
       <div className="flex-1 bg-muted/20 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <Card className="w-full max-w-md overflow-hidden shadow-2xl border-none">
           <div className="relative h-48 sm:h-56 w-full bg-[#1A237E]">
              <Image 
-                src="https://picsum.photos/seed/library-vibe/600/400" 
+                src="https://storage.googleapis.com/test-872f2.appspot.com/a9c1e95c-37e4-42b7-872e-067964402636/IMG_0047.jpg" 
                 fill 
                 className="object-cover opacity-60 mix-blend-overlay" 
-                alt="New Era University Library Interior"
-                data-ai-hint="library interior"
+                alt="New Era University Library Exterior"
+                data-ai-hint="university library"
               />
              <div className="absolute bottom-6 left-8">
                <div className="w-8 h-1 bg-accent mb-2" />
@@ -158,7 +155,7 @@ export default function LoginPage() {
                   fill="#EA4335"
                 />
               </svg>
-              Sign in with Google
+              Log in with Google
             </Button>
 
             <div className="relative">
@@ -205,8 +202,7 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <div className="flex items-center gap-3">
-                      <ArrowRight className="w-5 h-5 rotate-180" />
-                      {isLoginView ? "SIGN IN" : "CREATE ACCOUNT"}
+                      {isLoginView ? "LOG IN" : "CREATE ACCOUNT"}
                     </div>
                     <ArrowRight className="w-5 h-5" />
                   </>
@@ -219,7 +215,7 @@ export default function LoginPage() {
                 onClick={() => setIsLoginView(!isLoginView)}
                 className="text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-[#1A237E] hover:underline transition-all"
               >
-                {isLoginView ? "New here? Create institutional account" : "Already registered? Sign in here"}
+                {isLoginView ? "New here? Create institutional account" : "Already registered? Log in here"}
               </button>
             </div>
           </CardContent>

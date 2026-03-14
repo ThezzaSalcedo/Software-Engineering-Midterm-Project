@@ -1,4 +1,3 @@
-
 {
   "placeholderImages": [
     {
@@ -21,9 +20,9 @@
     },
     {
       "id": "login-card-library",
-      "description": "Interior of a quiet academic library",
-      "imageUrl": "https://picsum.photos/seed/library-vibe/600/400",
-      "imageHint": "library interior"
+      "description": "Official New Era University Library Building",
+      "imageUrl": "https://storage.googleapis.com/test-872f2.appspot.com/a9c1e95c-37e4-42b7-872e-067964402636/IMG_0047.jpg",
+      "imageHint": "university library"
     }
   ]
 }
