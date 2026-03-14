@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X } from "lucide-react";
+import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X, LayoutDashboard } from "lucide-react";
 import { collection } from "firebase/firestore";
 import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 const VISIT_REASONS = [
   "Reading",
@@ -54,7 +55,6 @@ export default function DashboardPage() {
 
     setIsSubmitting(true);
     
-    // Corrected to use the flat 'visit_logs' collection
     const visitsCollection = collection(db, "visit_logs");
     
     addDocumentNonBlocking(visitsCollection, {
@@ -119,6 +119,14 @@ export default function DashboardPage() {
             <h1 className="font-bold text-xl tracking-tight text-primary">NEW ERA UNIVERSITY LIBRARY</h1>
           </div>
           <div className="flex items-center gap-4">
+            {profile?.role === "Admin" && (
+              <Button variant="outline" size="sm" asChild className="hidden md:flex gap-2 border-primary text-primary hover:bg-primary/5">
+                <Link href="/admin">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Admin Console
+                </Link>
+              </Button>
+            )}
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-sm font-semibold">{profile?.displayName}</span>
               <span className="text-xs text-muted-foreground">{profile?.collegeOrOffice}</span>
