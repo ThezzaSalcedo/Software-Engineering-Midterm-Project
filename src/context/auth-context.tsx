@@ -1,8 +1,13 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword 
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth as useFirebaseAuth, useFirestore, useUser, setDocumentNonBlocking } from "@/firebase";
 
@@ -24,6 +29,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
@@ -61,26 +68,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, db]);
 
-  const login = async () => {
-    const googleProvider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, googleProvider);
-    const email = result.user.email || "";
-
-    // Restrict login to New Era University institutional domain
+  const validateEmail = (email: string) => {
     if (!email.endsWith("@neu.edu.ph")) {
-      await signOut(auth);
       throw new Error("Access denied. Please use your @neu.edu.ph institutional email.");
     }
+  };
 
-    const userRef = doc(db, "userProfiles", result.user.uid);
+  const syncProfile = async (firebaseUser: any) => {
+    const userRef = doc(db, "userProfiles", firebaseUser.uid);
     const userDoc = await getDoc(userRef);
     
     if (!userDoc.exists()) {
       const newProfile: UserProfile = {
-        id: result.user.uid,
-        email: email,
-        displayName: result.user.displayName || "User",
-        photoURL: result.user.photoURL || "",
+        id: firebaseUser.uid,
+        email: firebaseUser.email || "",
+        displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || "User",
+        photoURL: firebaseUser.photoURL || "",
         role: "User",
         isSetupComplete: false,
         createdAt: new Date().toISOString(),
@@ -91,6 +94,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setProfile(userDoc.data() as UserProfile);
     }
+  };
+
+  const login = async () => {
+    const googleProvider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, googleProvider);
+    validateEmail(result.user.email || "");
+    await syncProfile(result.user);
+  };
+
+  const loginWithEmail = async (email: string, pass: string) => {
+    validateEmail(email);
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+    await syncProfile(result.user);
+  };
+
+  const signUpWithEmail = async (email: string, pass: string) => {
+    validateEmail(email);
+    const result = await createUserWithEmailAndPassword(auth, email, pass);
+    await syncProfile(result.user);
   };
 
   const logout = async () => {
@@ -108,7 +130,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading: loading || isUserLoading, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      loading: loading || isUserLoading, 
+      login, 
+      loginWithEmail,
+      signUpWithEmail,
+      logout, 
+      updateProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );
