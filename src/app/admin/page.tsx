@@ -200,12 +200,13 @@ export default function AdminPage() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="start">
                     <Calendar 
                       mode="range" 
                       selected={date} 
                       onSelect={setDate} 
                       numberOfMonths={1} 
+                      className="rounded-xl"
                     />
                   </PopoverContent>
                 </Popover>
