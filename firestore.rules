@@ -19,7 +19,9 @@ service cloud.firestore {
     }
 
     function isNotBlocked(userId) {
-      return get(/databases/$(database)/documents/userProfiles/$(userId)).data.isBlocked != true;
+      // Use .get() with a default value to safely handle cases where the isBlocked field might be missing from the profile document.
+      // If isBlocked is not present, it defaults to false, permitting the operation.
+      return get(/databases/$(database)/documents/userProfiles/$(userId)).data.get('isBlocked', false) == false;
     }
 
     // --- COLLECTION RULES ---
