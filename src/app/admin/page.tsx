@@ -12,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import { 
   LogOut, Users, Activity, BarChart3, Search, 
   Calendar as CalendarIcon, RotateCcw, Loader2, 
-  ShieldAlert, CalendarDays, History, ShieldCheck, 
-  Ban, CheckCircle2, UserCheck, GraduationCap, Building2,
-  PieChart as PieChartIcon, BarChart as BarChartIcon
+  ShieldAlert, GraduationCap, Building2,
+  PieChart as PieChartIcon, BarChart as BarChartIcon,
+  ChevronDown, ChevronUp, Ban, UserCheck
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
+import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
@@ -28,7 +28,7 @@ import {
   Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, 
   Pie, PieChart, Cell, Legend 
 } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface VisitRecord {
   id: string;
@@ -60,6 +60,7 @@ export default function AdminPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
     to: new Date(),
@@ -175,13 +176,11 @@ export default function AdminPage() {
   }, [visits, allUsers]);
 
   const chartData = useMemo(() => {
-    // Pie Chart Data: Students vs Faculty
     const userTypeData = [
       { name: 'Students', value: stats.studentCount, color: 'hsl(var(--primary))' },
       { name: 'Faculty', value: stats.facultyCount, color: 'hsl(var(--accent))' },
     ];
 
-    // Bar Chart Data: Reasons for Visit
     const reasonsMap: Record<string, number> = {};
     visits.forEach(v => {
       reasonsMap[v.reasonForVisit] = (reasonsMap[v.reasonForVisit] || 0) + 1;
@@ -279,59 +278,84 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Statistical Summary Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1 shadow-sm border-none rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <PieChartIcon className="w-4 h-4 text-primary" />
-                User Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData.userTypeData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {chartData.userTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Statistical Summary Toggle */}
+        <Collapsible open={showAnalytics} onOpenChange={setShowAnalytics} className="space-y-4">
+          <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
+             <div className="flex items-center gap-3">
+               <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                 <BarChartIcon className="w-5 h-5" />
+               </div>
+               <div>
+                 <h3 className="font-bold text-sm">Analytics Overview</h3>
+                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Visual insights into library traffic</p>
+               </div>
+             </div>
+             <CollapsibleTrigger asChild>
+               <Button variant="outline" size="sm" className="gap-2 rounded-lg font-bold uppercase text-[10px] h-9 px-4">
+                 {showAnalytics ? (
+                   <>Hide Analytics <ChevronUp className="w-3 h-3" /></>
+                 ) : (
+                   <>Show Analytics <ChevronDown className="w-3 h-3" /></>
+                 )}
+               </Button>
+             </CollapsibleTrigger>
+          </div>
 
-          <Card className="lg:col-span-2 shadow-sm border-none rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <BarChartIcon className="w-4 h-4 text-primary" />
-                Purpose of Visit (Top Reasons)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData.reasonData}>
-                  <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+          <CollapsibleContent className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-1 shadow-sm border-none rounded-2xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <PieChartIcon className="w-4 h-4 text-primary" />
+                    User Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData.userTypeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {chartData.userTypeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2 shadow-sm border-none rounded-2xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <BarChartIcon className="w-4 h-4 text-primary" />
+                    Purpose of Visit (Top Reasons)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData.reasonData}>
+                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         <Tabs defaultValue="visits" className="space-y-6">
           <TabsList className="bg-white border p-1 rounded-xl w-full sm:w-auto h-12">
