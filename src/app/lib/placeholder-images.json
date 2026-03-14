@@ -18,6 +18,12 @@
       "description": "Campus background for login page",
       "imageUrl": "https://picsum.photos/seed/neu-bg/1920/1080",
       "imageHint": "university campus"
+    },
+    {
+      "id": "login-card-library",
+      "description": "Interior of a quiet academic library",
+      "imageUrl": "https://picsum.photos/seed/library-interior/600/400",
+      "imageHint": "library interior"
     }
   ]
 }

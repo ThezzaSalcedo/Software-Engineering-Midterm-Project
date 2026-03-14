@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -118,13 +119,13 @@ export default function LoginPage() {
       {/* Right Column: Login Card */}
       <div className="flex-1 bg-muted/30 flex items-center justify-center p-6 md:p-12">
         <Card className="w-full max-w-md overflow-hidden shadow-2xl border-none">
-          <div className="relative h-48 w-full bg-[#1A237E]">
+          <div className="relative h-56 w-full bg-[#1A237E]">
              <Image 
-                src="https://picsum.photos/seed/neu-library-visitor/600/400" 
+                src="https://picsum.photos/seed/library-interior/600/400" 
                 fill 
-                className="object-cover opacity-40 mix-blend-overlay" 
-                alt="Library"
-                data-ai-hint="library background"
+                className="object-cover opacity-60 mix-blend-overlay" 
+                alt="New Era University Library"
+                data-ai-hint="library interior"
               />
              <div className="absolute bottom-6 left-8">
                <div className="w-8 h-1 bg-accent mb-2" />
@@ -132,31 +133,14 @@ export default function LoginPage() {
              </div>
           </div>
 
-          <CardContent className="p-8 space-y-6">
-            <div className="bg-muted p-1 rounded-lg flex">
-              <Button 
-                variant={isLoginView ? "default" : "ghost"} 
-                className="flex-1 rounded-md text-xs font-bold"
-                onClick={() => setIsLoginView(true)}
-              >
-                Institutional
-              </Button>
-              <Button 
-                variant={!isLoginView ? "default" : "ghost"} 
-                className="flex-1 rounded-md text-xs font-bold opacity-40"
-                disabled
-              >
-                Demo Entry
-              </Button>
-            </div>
-
+          <CardContent className="p-8 space-y-8">
             <Button 
               onClick={handleGoogleLogin} 
               variant="outline"
               disabled={isSubmitting}
-              className="w-full h-12 gap-3 font-bold border-muted-foreground/20 hover:bg-muted/50 transition-all"
+              className="w-full h-14 gap-3 font-bold border-muted-foreground/20 hover:bg-muted/50 transition-all rounded-xl"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#4285F4"
