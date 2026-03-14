@@ -6,15 +6,15 @@ import { useRouter } from "next/navigation";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, FilterX, Loader2, ShieldAlert, RotateCcw, CalendarDays, History } from "lucide-react";
+import { LogOut, Users, Activity, BarChart3, Search, Calendar as CalendarIcon, RotateCcw, Loader2, ShieldAlert, CalendarDays, History } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface VisitRecord {
   id: string;
@@ -35,6 +35,7 @@ export default function AdminPage() {
     from: subDays(new Date(), 7),
     to: new Date(),
   });
+  const [period, setPeriod] = useState<string>("custom");
   const [month, setMonth] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function AdminPage() {
     );
   }, [db, user, profile?.role]);
 
-  const { data: visitsData, isLoading: visitsLoading, error: visitsError } = useCollection<VisitRecord>(visitorLogsQuery);
+  const { data: visitsData, isLoading: visitsLoading } = useCollection<VisitRecord>(visitorLogsQuery);
   const visits = (visitsData || []) as VisitRecord[];
 
   const handleLogout = async () => {
@@ -66,34 +67,31 @@ export default function AdminPage() {
 
   const handleResetFilters = () => {
     setSearchTerm("");
-    const defaultRange = {
+    setPeriod("custom");
+    setDate({
       from: subDays(new Date(), 7),
       to: new Date(),
-    };
-    setDate(defaultRange);
+    });
     setMonth(new Date());
   };
 
-  const handleGoToToday = () => {
-    const today = new Date();
-    setDate({ from: today, to: today });
-    setMonth(today);
-  };
-
-  const handleSetPeriod = (period: 'today' | 'week' | 'month') => {
+  const handlePeriodChange = (value: string) => {
+    setPeriod(value);
     const now = new Date();
     let from: Date;
     let to: Date = now;
 
-    if (period === 'today') {
+    if (value === 'today') {
       from = startOfDay(now);
       to = endOfDay(now);
-    } else if (period === 'week') {
-      from = startOfWeek(now, { weekStartsOn: 0 }); // Sunday
+    } else if (value === 'week') {
+      from = startOfWeek(now, { weekStartsOn: 0 });
       to = endOfWeek(now, { weekStartsOn: 0 });
-    } else {
+    } else if (value === 'month') {
       from = startOfMonth(now);
       to = endOfMonth(now);
+    } else {
+      return; // Keep custom range
     }
     setDate({ from, to });
     setMonth(from);
@@ -131,12 +129,10 @@ export default function AdminPage() {
       todayCount,
       weekCount,
       monthCount,
-      periodTotal: filteredVisits.length,
-      periodLabel: date?.from && date?.to 
-        ? `${format(date.from, "MMM d")} - ${format(date.to, "MMM d")}`
-        : date?.from ? format(date.from, "MMM d, yyyy") : "Selected Period"
+      totalCount: visits.length,
+      filteredCount: filteredVisits.length
     };
-  }, [visits, filteredVisits, date]);
+  }, [visits, filteredVisits]);
 
   if (authLoading) {
     return (
@@ -173,53 +169,59 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-4 py-8 space-y-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="shadow-sm border-none bg-white rounded-2xl cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" onClick={() => handleSetPeriod('today')}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Today</CardTitle>
-              <Activity className="w-4 h-4 text-accent" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-primary">{stats.todayCount}</div>
+      <main className="max-w-7xl mx-auto p-4 py-8 space-y-6">
+        {/* Simple Stats Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="shadow-none border bg-white rounded-xl">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-2 bg-accent/10 rounded-lg text-accent">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase">Today</p>
+                <p className="text-2xl font-black text-primary">{stats.todayCount}</p>
+              </div>
             </CardContent>
           </Card>
-          
-          <Card className="shadow-sm border-none bg-white rounded-2xl cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" onClick={() => handleSetPeriod('week')}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">This Week</CardTitle>
-              <CalendarDays className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-primary">{stats.weekCount}</div>
+          <Card className="shadow-none border bg-white rounded-xl">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase">Weekly</p>
+                <p className="text-2xl font-black text-primary">{stats.weekCount}</p>
+              </div>
             </CardContent>
           </Card>
-
-          <Card className="shadow-sm border-none bg-white rounded-2xl cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" onClick={() => handleSetPeriod('month')}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">This Month</CardTitle>
-              <History className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-primary">{stats.monthCount}</div>
+          <Card className="shadow-none border bg-white rounded-xl">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <History className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase">Monthly</p>
+                <p className="text-2xl font-black text-primary">{stats.monthCount}</p>
+              </div>
             </CardContent>
           </Card>
-          
-          <Card className="shadow-sm border-none bg-primary text-primary-foreground rounded-2xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider opacity-90">Filtered View</CardTitle>
-              <Users className="w-4 h-4 opacity-70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black">{stats.periodTotal}</div>
-              <p className="text-[10px] opacity-70 mt-1 uppercase font-bold">{stats.periodLabel}</p>
+          <Card className="shadow-none border bg-primary text-primary-foreground rounded-xl">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold opacity-80 uppercase">Results</p>
+                <p className="text-2xl font-black">{stats.filteredCount}</p>
+              </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Filter Controls */}
         <Card className="shadow-sm border-none rounded-2xl overflow-hidden">
           <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4 items-end">
+            <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
               <div className="w-full lg:flex-1 space-y-2">
                 <label className="text-xs font-bold uppercase text-muted-foreground">Search Visitors</label>
                 <div className="relative">
@@ -234,11 +236,23 @@ export default function AdminPage() {
               </div>
 
               <div className="w-full lg:w-auto space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Date Filter</label>
+                <label className="text-xs font-bold uppercase text-muted-foreground">Quick Filters</label>
+                <Tabs value={period} onValueChange={handlePeriodChange} className="w-full">
+                  <TabsList className="h-12 bg-muted/20 p-1 rounded-xl w-full lg:w-auto">
+                    <TabsTrigger value="today" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Today</TabsTrigger>
+                    <TabsTrigger value="week" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Week</TabsTrigger>
+                    <TabsTrigger value="month" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Month</TabsTrigger>
+                    <TabsTrigger value="custom" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Custom</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
+              <div className="w-full lg:w-auto space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Date Range</label>
                 <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full lg:w-[260px] justify-start text-left h-12 rounded-xl border-muted/50">
+                      <Button variant="outline" className="w-full lg:w-[260px] justify-start text-left h-12 rounded-xl border-muted/50 bg-white">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {date?.from ? (
                           date.to ? (
@@ -251,15 +265,23 @@ export default function AdminPage() {
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="start">
+                    <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="end">
                       <Calendar 
                         mode="range" 
                         selected={date} 
-                        onSelect={setDate} 
+                        onSelect={(newDate) => {
+                          setDate(newDate);
+                          setPeriod("custom");
+                        }} 
                         month={month}
                         onMonthChange={setMonth}
                         numberOfMonths={1} 
-                        onTodayClick={handleGoToToday}
+                        onTodayClick={() => {
+                          const today = new Date();
+                          setDate({ from: today, to: today });
+                          setMonth(today);
+                          setPeriod("today");
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -268,7 +290,6 @@ export default function AdminPage() {
                     size="icon" 
                     className="h-12 w-12 rounded-xl border border-dashed text-muted-foreground hover:text-primary hover:border-primary transition-colors"
                     onClick={handleResetFilters}
-                    title="Reset Filters"
                   >
                     <RotateCcw className="w-5 h-5" />
                   </Button>
@@ -278,6 +299,7 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
+        {/* Data Table */}
         <Card className="shadow-lg border-none bg-white rounded-2xl overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -293,7 +315,7 @@ export default function AdminPage() {
                 <TableBody>
                   {filteredVisits.length > 0 ? (
                     filteredVisits.map((visit) => (
-                      <TableRow key={visit.id}>
+                      <TableRow key={visit.id} className="hover:bg-muted/5 transition-colors">
                         <TableCell className="py-4 px-6">
                           <div className="flex flex-col">
                             <span className="font-bold text-sm">{visit.displayName}</span>
