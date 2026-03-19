@@ -70,6 +70,13 @@ interface UserRecord {
   createdAt: string;
 }
 
+// Authorized Administrative Whitelist (Consistent with AuthContext)
+const ADMIN_EMAILS = [
+  "admin1@neu.edu.ph",
+  "jcesperanza@neu.edu.ph",
+  "zyrus.velasco@neu.edu.ph"
+];
+
 export default function AdminPage() {
   const { user, profile, logout, loading: authLoading, startSimulation, stopSimulation, simulation } = useAuth();
   const router = useRouter();
@@ -255,7 +262,8 @@ export default function AdminPage() {
   }, [stats, visits]);
 
   const generateDailyPDF = () => {
-    if (profile?.email !== 'admin1@neu.edu.ph') return;
+    const isAuthorized = ADMIN_EMAILS.includes(profile?.email || "");
+    if (!isAuthorized) return;
 
     const doc = new jsPDF();
     const today = new Date();
@@ -350,7 +358,7 @@ export default function AdminPage() {
     );
   }
 
-  const isSuperAdmin = profile?.email === 'admin1@neu.edu.ph';
+  const isAuthorizedAdmin = ADMIN_EMAILS.includes(profile?.email || "");
 
   return (
     <div className="min-h-screen bg-muted/5 font-body">
@@ -387,7 +395,7 @@ export default function AdminPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {isSuperAdmin && (
+            {isAuthorizedAdmin && (
               <Button 
                 variant="outline" 
                 onClick={generateDailyPDF} 
