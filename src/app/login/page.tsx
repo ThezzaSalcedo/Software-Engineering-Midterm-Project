@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
 export default function LoginPage() {
-  const { login, loginWithEmail, signUpWithEmail, user, loading } = useAuth();
+  const { login, loginWithEmail, signUpWithEmail, user, profile, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -22,10 +22,16 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user && !loading) {
-      router.push("/");
+    if (!loading && user) {
+      if (!profile || !profile.isSetupComplete) {
+        router.push("/onboarding");
+      } else if (profile.role === "Admin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, profile, loading, router]);
 
   const handleGoogleLogin = async () => {
     setIsSubmitting(true);
@@ -37,7 +43,6 @@ export default function LoginPage() {
         title: "Authentication Error",
         description: error.message || "Could not log in with Google.",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -59,7 +64,6 @@ export default function LoginPage() {
         title: "Authentication Error",
         description: error.message || "Credential error.",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -67,7 +71,10 @@ export default function LoginPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="font-bold text-muted-foreground animate-pulse uppercase tracking-widest text-xs">Synchronizing Session...</p>
+        </div>
       </div>
     );
   }
@@ -117,15 +124,17 @@ export default function LoginPage() {
 
       {/* Login Form Section */}
       <div className="flex-1 bg-muted/20 flex items-center justify-center p-4 sm:p-8 lg:p-12">
-        <Card className="w-full max-w-md overflow-hidden shadow-2xl border-none">
+        <Card className="w-full max-w-md overflow-hidden shadow-2xl border-none rounded-3xl">
           <div className="relative h-48 sm:h-56 w-full bg-[#1A237E]">
              <Image 
-                src="https://picsum.photos/seed/library-interior/800/600" 
+                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSDmpDfHLFrbaPzLVY2rPKJHZ-w5py9ru5UhQ&s" 
                 fill 
-                className="object-cover opacity-60 mix-blend-overlay" 
-                alt="New Era University Library Interior"
-                data-ai-hint="library interior"
+                className="object-cover" 
+                alt="New Era University Library Welcome Image"
+                priority
+                suppressHydrationWarning
               />
+             <div className="absolute inset-0 bg-gradient-to-t from-[#1A237E]/80 to-transparent" />
              <div className="absolute bottom-6 left-8">
                <div className="w-8 h-1 bg-accent mb-2" />
                <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">Welcome, Visitor</h2>
@@ -138,26 +147,33 @@ export default function LoginPage() {
               variant="outline"
               disabled={isSubmitting}
               className="w-full h-12 sm:h-14 gap-3 font-bold border-muted-foreground/20 hover:bg-muted/50 transition-all rounded-xl"
+              suppressHydrationWarning
             >
-              <svg className="w-5 h-5 sm:w-6 h-6" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Sign in with Google
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-5 h-5 sm:w-6 h-6" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Sign in with Google
+                </>
+              )}
             </Button>
 
             <div className="relative">
@@ -179,6 +195,7 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    suppressHydrationWarning
                   />
                 </div>
               </div>
@@ -191,6 +208,7 @@ export default function LoginPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    suppressHydrationWarning
                   />
                 </div>
               </div>
@@ -198,6 +216,7 @@ export default function LoginPage() {
                 type="submit" 
                 className="w-full h-12 sm:h-14 bg-[#1A237E] hover:bg-[#0D1642] text-white font-bold text-base sm:text-lg rounded-xl flex items-center justify-center transition-all"
                 disabled={isSubmitting}
+                suppressHydrationWarning
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin mx-auto" />
@@ -211,6 +230,7 @@ export default function LoginPage() {
               <button 
                 onClick={() => setIsLoginView(!isLoginView)}
                 className="text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-[#1A237E] hover:underline transition-all"
+                suppressHydrationWarning
               >
                 {isLoginView ? "New here? Create institutional account" : "Already registered? Log in here"}
               </button>

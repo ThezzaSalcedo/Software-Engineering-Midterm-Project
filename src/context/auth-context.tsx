@@ -1,13 +1,15 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   GoogleAuthProvider, 
-  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult,
   signOut, 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence
 } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { useAuth as useFirebaseAuth, useFirestore, useUser, setDocumentNonBlocking } from "@/firebase";
@@ -47,6 +49,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Persistence and Redirect Result Handling
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          await syncProfile(result.user);
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      }
+    };
+    initAuth();
+  }, [auth]);
+
   useEffect(() => {
     let unsubscribe: () => void = () => {};
 
@@ -82,7 +100,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isAdminEmail = email === "admin1@neu.edu.ph";
     const role: UserRole = isAdminEmail ? "Admin" : "User";
 
-    // Set administrative status immediately in the lookup collection
     if (isAdminEmail) {
       const adminRoleRef = doc(db, "roles_admin", firebaseUser.uid);
       setDocumentNonBlocking(adminRoleRef, { 
@@ -118,9 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async () => {
     const googleProvider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, googleProvider);
-    validateEmail(result.user.email || "");
-    await syncProfile(result.user);
+    googleProvider.setCustomParameters({ hd: 'neu.edu.ph' });
+    // Use Redirect to ensure it works in preview environment
+    await signInWithRedirect(auth, googleProvider);
   };
 
   const loginWithEmail = async (email: string, pass: string) => {
