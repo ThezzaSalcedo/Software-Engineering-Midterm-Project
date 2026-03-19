@@ -171,10 +171,7 @@ export default function AdminPage() {
   const finalizeSimulation = (visitType: "First-Time" | "Returning") => {
     if (!tempSimRole) return;
     
-    // Reset simulation context first
-    stopSimulation();
-    
-    // Initialize new simulation state
+    // Initialize new simulation state - state updates happen in AuthProvider
     startSimulation({
       role: tempSimRole,
       visitType
@@ -182,14 +179,14 @@ export default function AdminPage() {
     
     setIsSimDialogOpen(false);
     
-    // Use a slight timeout to ensure state propagation before navigation
+    // Explicit navigation after state push
     setTimeout(() => {
       if (visitType === "First-Time") {
         router.push("/onboarding");
       } else {
         router.push("/dashboard");
       }
-    }, 100);
+    }, 50);
   };
 
   const filteredVisits = useMemo(() => {
@@ -340,9 +337,9 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/5">
         <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
-        <h1 className="text-2xl font-bold font-headline">Unauthorized Access</h1>
+        <h1 className="text-2xl font-bold font-headline text-destructive">Unauthorized Access</h1>
         <p className="text-muted-foreground text-center max-w-md mt-2">
-          You do not have the required administrative privileges to view this console. 
+          You do not have administrative privileges to access this console. 
         </p>
       </div>
     );
@@ -352,7 +349,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-muted/5 font-body">
-      <header className="border-b bg-primary text-primary-foreground p-4 shadow-sm sticky top-0 z-50">
+      <header className="border-b bg-primary text-primary-foreground p-4 shadow-sm sticky top-0 z-[40]">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-6 h-6" />
@@ -367,10 +364,10 @@ export default function AdminPage() {
                   <ChevronDown className="w-3 h-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl border-none shadow-2xl">
+              <DropdownMenuContent align="end" className="w-48 rounded-xl border-none shadow-2xl z-[100]">
                 <DropdownMenuLabel className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Select Simulation</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { stopSimulation(); router.refresh(); }} className="gap-2 font-bold cursor-pointer">
+                <DropdownMenuItem onClick={() => { stopSimulation(); }} className="gap-2 font-bold cursor-pointer">
                   <MonitorSmartphone className="w-4 h-4 text-primary" />
                   Admin (Default)
                 </DropdownMenuItem>
@@ -404,7 +401,7 @@ export default function AdminPage() {
       </header>
 
       <Dialog open={isSimDialogOpen} onOpenChange={setIsSimDialogOpen}>
-        <DialogContent className="rounded-3xl border-none shadow-2xl max-w-sm">
+        <DialogContent className="rounded-3xl border-none shadow-2xl max-w-sm z-[110]">
           <DialogHeader className="space-y-3">
             <DialogTitle className="text-2xl font-black tracking-tight text-primary uppercase font-headline">Simulate Visit History</DialogTitle>
             <DialogDescription className="text-sm font-medium">

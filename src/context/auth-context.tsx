@@ -174,9 +174,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    sessionStorage.removeItem(SIM_STORAGE_KEY);
     await signOut(auth);
     setProfile(null);
-    stopSimulation();
+    setSimulation(null);
   };
 
   const updateProfile = async (data: Partial<UserProfile>) => {
@@ -191,8 +192,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const stopSimulation = useCallback(() => {
-    setSimulation(null);
     sessionStorage.removeItem(SIM_STORAGE_KEY);
+    setSimulation(null);
   }, []);
 
   // Compute the effective profile (real or simulated)

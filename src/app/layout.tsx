@@ -26,7 +26,9 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AuthProvider>
             <SimulationBanner />
-            {children}
+            <div className="relative flex min-h-screen flex-col">
+              {children}
+            </div>
             <Toaster />
           </AuthProvider>
         </FirebaseClientProvider>
