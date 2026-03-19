@@ -44,7 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import jsPDF from "jsPDF";
+import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 interface VisitRecord {
