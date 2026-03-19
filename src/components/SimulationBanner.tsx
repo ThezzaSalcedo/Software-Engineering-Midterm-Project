@@ -2,38 +2,40 @@
 
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, X, LogOut } from "lucide-react";
 
 export function SimulationBanner() {
   const { simulation, stopSimulation } = useAuth();
-  const router = useRouter();
 
   if (!simulation) return null;
 
   const handleExit = () => {
-    // Explicitly call stopSimulation and then push to admin
+    // Explicitly call stopSimulation to clear state
     stopSimulation();
-    router.push("/admin");
+    // Use window.location for a hard redirect to ensure we bypass any stuck routing loops
+    // and return safely to the admin console with a clean state.
+    window.location.href = "/admin";
   };
 
   return (
-    <div className="bg-orange-500 text-white py-1.5 px-4 flex items-center justify-between sticky top-0 z-[100] shadow-md animate-in slide-in-from-top duration-300">
-      <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-        <AlertCircle className="w-4 h-4" />
+    <div className="bg-[#FB8C00] text-white py-2 px-4 flex items-center justify-between sticky top-0 z-[100] shadow-xl border-b border-white/20 animate-in slide-in-from-top duration-300">
+      <div className="flex items-center gap-3 text-[10px] sm:text-xs font-black uppercase tracking-widest">
+        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+          <AlertCircle className="w-4 h-4" />
+        </div>
         <span>
-          Previewing as <span className="underline decoration-white/50 underline-offset-2">{simulation.role}</span> — 
-          Visit Type: <span className="underline decoration-white/50 underline-offset-2">{simulation.visitType}</span>
+          PREVIEW MODE: <span className="underline decoration-white/50 underline-offset-4">{simulation.role}</span> — 
+          VISIT: <span className="underline decoration-white/50 underline-offset-4">{simulation.visitType}</span>
         </span>
       </div>
       <Button 
         variant="ghost" 
         size="sm" 
         onClick={handleExit}
-        className="text-white hover:bg-white/20 h-7 text-[10px] px-3 gap-1 rounded-full border border-white/30"
+        className="bg-white text-[#FB8C00] hover:bg-white/90 h-8 text-[10px] px-4 gap-2 rounded-full font-black uppercase transition-all shadow-md"
       >
         <span>Exit Preview</span>
-        <X className="w-3 h-3" />
+        <LogOut className="w-3.5 h-3.5" />
       </Button>
     </div>
   );
