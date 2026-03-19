@@ -49,7 +49,6 @@ export default function DashboardPage() {
       if (!user && !simulation) {
         router.push("/login");
       } else if (profile?.role === "Admin" && !simulation) {
-        // If simulation is exited and user is an admin, return to admin panel
         router.push("/admin");
       }
     }
@@ -119,7 +118,7 @@ export default function DashboardPage() {
               variant="ghost" 
               size="icon" 
               onClick={() => setShowSuccess(false)}
-              className="absolute right-4 top-4 text-white hover:bg-white/20 rounded-full"
+              className="absolute right-4 top-4 text-white hover:bg-white/20 rounded-full z-[160]"
             >
               <X className="w-6 h-6" />
             </Button>

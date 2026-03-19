@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useAuth, SimulationState } from "@/context/auth-context";
+import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
@@ -44,7 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import jsPDF from "jspdf";
+import jsPDF from "jsPDF";
 import autoTable from "jspdf-autotable";
 
 interface VisitRecord {
@@ -78,16 +78,23 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 7),
-    to: new Date(),
-  });
+  const [date, setDate] = useState<DateRange | undefined>(undefined);
   const [period, setPeriod] = useState<string>("custom");
-  const [month, setMonth] = useState<Date>(new Date());
+  const [month, setMonth] = useState<Date | undefined>(undefined);
 
-  // Simulation State
+  // Simulation UI State
   const [isSimDialogOpen, setIsSimDialogOpen] = useState(false);
   const [tempSimRole, setTempSimRole] = useState<"Student" | "Faculty" | null>(null);
+
+  // Initialize dates after hydration to prevent mismatches
+  useEffect(() => {
+    const today = new Date();
+    setDate({
+      from: subDays(today, 7),
+      to: today,
+    });
+    setMonth(today);
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
@@ -124,8 +131,9 @@ export default function AdminPage() {
   const handleResetFilters = () => {
     setSearchTerm("");
     setPeriod("custom");
-    setDate({ from: subDays(new Date(), 7), to: new Date() });
-    setMonth(new Date());
+    const today = new Date();
+    setDate({ from: subDays(today, 7), to: today });
+    setMonth(today);
   };
 
   const handlePeriodChange = (value: string) => {
@@ -163,6 +171,10 @@ export default function AdminPage() {
   const finalizeSimulation = (visitType: "First-Time" | "Returning") => {
     if (!tempSimRole) return;
     
+    // Reset simulation context first
+    stopSimulation();
+    
+    // Initialize new simulation state
     startSimulation({
       role: tempSimRole,
       visitType
@@ -170,11 +182,14 @@ export default function AdminPage() {
     
     setIsSimDialogOpen(false);
     
-    if (visitType === "First-Time") {
-      router.push("/onboarding");
-    } else {
-      router.push("/dashboard");
-    }
+    // Use a slight timeout to ensure state propagation before navigation
+    setTimeout(() => {
+      if (visitType === "First-Time") {
+        router.push("/onboarding");
+      } else {
+        router.push("/dashboard");
+      }
+    }, 100);
   };
 
   const filteredVisits = useMemo(() => {
@@ -246,19 +261,17 @@ export default function AdminPage() {
     
     // Header
     doc.setFontSize(22);
-    doc.setTextColor(26, 35, 126); // Primary Color
+    doc.setTextColor(26, 35, 126); 
     doc.text("NEU Library Daily Activity Report", 14, 20);
     
     doc.setFontSize(12);
     doc.setTextColor(100);
     doc.text(`Report Date: ${dateStr}`, 14, 30);
 
-    // Filter today's visits
     const todayVisits = visits.filter(v => isToday(new Date(v.visitDateTime)));
     const todayStudents = todayVisits.filter(v => v.userType === 'Student').length;
     const todayFaculty = todayVisits.filter(v => v.userType === 'Faculty').length;
 
-    // 1. Daily Summary Section
     doc.setFontSize(16);
     doc.setTextColor(0);
     doc.text("Daily Summary", 14, 45);
@@ -275,7 +288,6 @@ export default function AdminPage() {
       headStyles: { fillColor: [26, 35, 126] }
     });
 
-    // 2. Statistical Summary (Purpose of Visit)
     const reasonsMap: Record<string, number> = {};
     todayVisits.forEach(v => {
       reasonsMap[v.reasonForVisit] = (reasonsMap[v.reasonForVisit] || 0) + 1;
@@ -295,7 +307,6 @@ export default function AdminPage() {
       headStyles: { fillColor: [26, 35, 126] }
     });
 
-    // 3. Detailed Logs Section
     doc.setFontSize(16);
     doc.text("Detailed Activity Log", 14, (doc as any).lastAutoTable.finalY + 15);
     
@@ -359,7 +370,7 @@ export default function AdminPage() {
               <DropdownMenuContent align="end" className="w-48 rounded-xl border-none shadow-2xl">
                 <DropdownMenuLabel className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Select Simulation</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={stopSimulation} className="gap-2 font-bold cursor-pointer">
+                <DropdownMenuItem onClick={() => { stopSimulation(); router.refresh(); }} className="gap-2 font-bold cursor-pointer">
                   <MonitorSmartphone className="w-4 h-4 text-primary" />
                   Admin (Default)
                 </DropdownMenuItem>
@@ -369,7 +380,7 @@ export default function AdminPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleSimSelect("Faculty")} className="gap-2 font-bold cursor-pointer">
                   <Building2 className="w-4 h-4 text-primary" />
-                  Faculty
+                  Professor / Faculty
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -397,7 +408,7 @@ export default function AdminPage() {
           <DialogHeader className="space-y-3">
             <DialogTitle className="text-2xl font-black tracking-tight text-primary uppercase font-headline">Simulate Visit History</DialogTitle>
             <DialogDescription className="text-sm font-medium">
-              Choose the visit type for the simulated <span className="font-bold text-primary">{tempSimRole}</span> user.
+              Choose the visit state for the simulated <span className="font-bold text-primary">{tempSimRole}</span> user.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-3 py-4">
@@ -420,7 +431,6 @@ export default function AdminPage() {
       </Dialog>
 
       <main className="max-w-7xl mx-auto p-4 py-8 space-y-6">
-        {/* Main Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="shadow-none border bg-white rounded-xl">
             <CardContent className="p-4 flex items-center gap-3">
@@ -468,7 +478,6 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Statistical Summary Toggle */}
         <Collapsible open={showAnalytics} onOpenChange={setShowAnalytics} className="space-y-4">
           <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
              <div className="flex items-center gap-3">
@@ -558,7 +567,6 @@ export default function AdminPage() {
           </TabsList>
 
           <TabsContent value="visits" className="space-y-6">
-            {/* Filter Controls */}
             <Card className="shadow-sm border-none rounded-2xl overflow-hidden">
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
@@ -644,7 +652,6 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-            {/* Data Table */}
             <Card className="shadow-lg border-none bg-white rounded-2xl overflow-hidden">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -779,7 +786,7 @@ export default function AdminPage() {
                                 <Switch 
                                   checked={!u.isBlocked} 
                                   onCheckedChange={() => toggleUserBlock(u.id, !!u.isBlocked)}
-                                  disabled={u.email === 'admin1@neu.edu.ph'} // Prevent blocking super admin
+                                  disabled={u.email === 'admin1@neu.edu.ph'} 
                                 />
                               </div>
                             </TableCell>
