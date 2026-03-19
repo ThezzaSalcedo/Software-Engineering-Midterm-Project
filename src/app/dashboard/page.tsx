@@ -44,6 +44,11 @@ export default function DashboardPage() {
 
   const { data: userVisits, isLoading: visitsLoading } = useCollection(userVisitsQuery);
 
+  const isFirstTime = useMemo(() => {
+    if (simulation) return simulation.visitType === "First-Time";
+    return !userVisits || userVisits.length === 0;
+  }, [simulation, userVisits]);
+
   useEffect(() => {
     if (!loading) {
       if (!user && !simulation) {
@@ -101,11 +106,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const isFirstTime = useMemo(() => {
-    if (simulation) return simulation.visitType === "First-Time";
-    return !userVisits || userVisits.length === 0;
-  }, [simulation, userVisits]);
 
   const firstName = profile?.displayName?.split(' ')[0] || "User";
 

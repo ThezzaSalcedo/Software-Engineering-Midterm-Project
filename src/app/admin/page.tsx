@@ -405,7 +405,10 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <Dialog open={isSimDialogOpen} onOpenChange={setIsSimDialogOpen}>
+      <Dialog open={isSimDialogOpen} onOpenChange={(open) => {
+        setIsSimDialogOpen(open);
+        if (!open) setTempSimRole(null);
+      }}>
         <DialogContent className="rounded-3xl border-none shadow-2xl max-w-sm z-[110]">
           <DialogHeader className="space-y-3">
             <DialogTitle className="text-2xl font-black tracking-tight text-primary uppercase font-headline">Simulate Visit History</DialogTitle>
