@@ -119,7 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const syncProfile = async (firebaseUser: any) => {
     const email = firebaseUser.email?.toLowerCase();
-    const isAdminEmail = email === "admin1@neu.edu.ph";
+    // Bootstrap jcesperanza@neu.edu.ph as Admin along with admin1
+    const isAdminEmail = email === "admin1@neu.edu.ph" || email === "jcesperanza@neu.edu.ph";
     const role: UserRole = isAdminEmail ? "Admin" : "User";
 
     if (isAdminEmail) {
@@ -149,8 +150,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setDocumentNonBlocking(userRef, newProfile, { merge: true });
     } else {
       const existingData = userDoc.data() as UserProfile;
+      // Bootstrap Override: Update existing user to Admin if they have the bootstrap email
       if (isAdminEmail && existingData.role !== "Admin") {
-        setDocumentNonBlocking(userRef, { role: "Admin", isSetupComplete: true }, { merge: true });
+        setDocumentNonBlocking(userRef, { 
+          role: "Admin", 
+          isSetupComplete: true 
+        }, { merge: true });
       }
     }
   };
