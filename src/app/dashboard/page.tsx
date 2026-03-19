@@ -12,7 +12,6 @@ import { LogOut, BookOpen, Clock, CheckCircle2, MapPin, ShieldAlert, Sparkles, X
 import { collection, query, where, limit } from "firebase/firestore";
 import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import Link from "next/link";
 
 const VISIT_REASONS = [
   "Reading",
@@ -34,7 +33,6 @@ export default function DashboardPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const { toast } = useToast();
 
-  // Query to check if the user has any previous visits
   const userVisitsQuery = useMemoFirebase(() => {
     if (!db || !profile?.id || simulation) return null;
     return query(
@@ -51,6 +49,7 @@ export default function DashboardPage() {
       if (!user && !simulation) {
         router.push("/login");
       } else if (profile?.role === "Admin" && !simulation) {
+        // If simulation is exited and user is an admin, return to admin panel
         router.push("/admin");
       }
     }
@@ -76,9 +75,7 @@ export default function DashboardPage() {
     }
 
     setIsSubmitting(true);
-    
     const visitsCollection = collection(db, "visit_logs");
-    
     addDocumentNonBlocking(visitsCollection, {
       userId: profile.id,
       displayName: profile.displayName,
@@ -92,7 +89,6 @@ export default function DashboardPage() {
     setReason("");
     setShowSuccess(true);
     setIsSubmitting(false);
-
     setTimeout(() => setShowSuccess(false), 5000);
   };
 

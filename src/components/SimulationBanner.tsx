@@ -12,6 +12,7 @@ export function SimulationBanner() {
   if (!simulation) return null;
 
   const handleExit = () => {
+    // Explicitly call stopSimulation and then push to admin
     stopSimulation();
     router.push("/admin");
   };

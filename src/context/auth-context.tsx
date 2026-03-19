@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { 
   GoogleAuthProvider, 
   signInWithRedirect, 
@@ -58,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [simulation, setSimulation] = useState<SimulationState | null>(null);
 
-  // Persistence and Redirect Result Handling
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -172,13 +171,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDocumentNonBlocking(userRef, data, { merge: true });
   };
 
-  const startSimulation = (state: SimulationState) => {
+  const startSimulation = useCallback((state: SimulationState) => {
     setSimulation(state);
-  };
+  }, []);
 
-  const stopSimulation = () => {
+  const stopSimulation = useCallback(() => {
     setSimulation(null);
-  };
+  }, []);
 
   // Compute the effective profile (real or simulated)
   const effectiveProfile = simulation ? {

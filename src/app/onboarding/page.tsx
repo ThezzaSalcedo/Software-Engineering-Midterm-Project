@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -42,7 +41,7 @@ const OFFICES = [
 ];
 
 export default function OnboardingPage() {
-  const { user, profile, updateProfile, loading } = useAuth();
+  const { user, profile, updateProfile, loading, simulation } = useAuth();
   const [userType, setUserType] = useState<"Student" | "Faculty">("Student");
   const [selection, setSelection] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,13 +49,16 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!loading) {
-      if (!user) {
+      if (!user && !simulation) {
         router.push("/login");
+      } else if (profile?.role === "Admin" && !simulation) {
+        // Redirect admins back to management console if simulation is exited
+        router.push("/admin");
       } else if (profile?.isSetupComplete) {
         router.push("/dashboard");
       }
     }
-  }, [user, profile, loading, router]);
+  }, [user, profile, loading, router, simulation]);
 
   const handleFinish = async () => {
     if (!selection || isSubmitting) return;
@@ -73,7 +75,7 @@ export default function OnboardingPage() {
     }
   };
 
-  if (loading || !user || profile?.isSetupComplete) return null;
+  if (loading || (!user && !simulation) || (profile?.isSetupComplete && !simulation)) return null;
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-muted/30">
