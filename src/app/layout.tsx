@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from "@/context/auth-context";
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { SimulationBanner } from '@/components/SimulationBanner';
 
 export const metadata: Metadata = {
   title: 'New Era University Library',
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background min-h-screen" suppressHydrationWarning>
         <FirebaseClientProvider>
           <AuthProvider>
+            <SimulationBanner />
             {children}
             <Toaster />
           </AuthProvider>

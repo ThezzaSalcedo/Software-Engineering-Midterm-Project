@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useAuth } from "@/context/auth-context";
+import { useAuth, SimulationState } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
@@ -13,7 +13,8 @@ import {
   Calendar as CalendarIcon, RotateCcw, Loader2, 
   ShieldAlert, GraduationCap, Building2,
   PieChart as PieChartIcon, BarChart as BarChartIcon,
-  ChevronDown, ChevronUp, Ban, UserCheck, Download
+  ChevronDown, ChevronUp, Ban, UserCheck, Download,
+  Eye, MonitorSmartphone
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format, isToday, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
@@ -28,6 +29,21 @@ import {
   Pie, PieChart, Cell, Legend 
 } from "recharts";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -55,7 +71,7 @@ interface UserRecord {
 }
 
 export default function AdminPage() {
-  const { user, profile, logout, loading: authLoading } = useAuth();
+  const { user, profile, logout, loading: authLoading, startSimulation, stopSimulation, simulation } = useAuth();
   const router = useRouter();
   const db = useFirestore();
 
@@ -69,15 +85,19 @@ export default function AdminPage() {
   const [period, setPeriod] = useState<string>("custom");
   const [month, setMonth] = useState<Date>(new Date());
 
+  // Simulation State
+  const [isSimDialogOpen, setIsSimDialogOpen] = useState(false);
+  const [tempSimRole, setTempSimRole] = useState<"Student" | "Faculty" | null>(null);
+
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
         router.push("/login");
-      } else if (profile && profile.role !== "Admin") {
+      } else if (profile && profile.role !== "Admin" && !simulation) {
         router.push("/dashboard");
       }
     }
-  }, [user, profile, authLoading, router]);
+  }, [user, profile, authLoading, router, simulation]);
 
   // Queries
   const visitorLogsQuery = useMemoFirebase(() => {
@@ -133,6 +153,28 @@ export default function AdminPage() {
   const toggleUserBlock = (userId: string, currentStatus: boolean) => {
     const userRef = doc(db, "users", userId);
     updateDocumentNonBlocking(userRef, { isBlocked: !currentStatus });
+  };
+
+  const handleSimSelect = (role: "Student" | "Faculty") => {
+    setTempSimRole(role);
+    setIsSimDialogOpen(true);
+  };
+
+  const finalizeSimulation = (visitType: "First-Time" | "Returning") => {
+    if (!tempSimRole) return;
+    
+    startSimulation({
+      role: tempSimRole,
+      visitType
+    });
+    
+    setIsSimDialogOpen(false);
+    
+    if (visitType === "First-Time") {
+      router.push("/onboarding");
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   const filteredVisits = useMemo(() => {
@@ -283,7 +325,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!user || (profile && profile.role !== "Admin")) {
+  if (!user || (profile && profile.role !== "Admin" && !simulation)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/5">
         <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
@@ -306,6 +348,32 @@ export default function AdminPage() {
             <h1 className="text-xl font-bold tracking-tight uppercase font-headline">NEU Library Admin</h1>
           </div>
           <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white rounded-xl gap-2 font-bold uppercase text-[10px]">
+                  <Eye className="w-3 h-3" />
+                  Preview As
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl border-none shadow-2xl">
+                <DropdownMenuLabel className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Select Simulation</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={stopSimulation} className="gap-2 font-bold cursor-pointer">
+                  <MonitorSmartphone className="w-4 h-4 text-primary" />
+                  Admin (Default)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSimSelect("Student")} className="gap-2 font-bold cursor-pointer">
+                  <GraduationCap className="w-4 h-4 text-primary" />
+                  Student
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSimSelect("Faculty")} className="gap-2 font-bold cursor-pointer">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  Faculty
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {isSuperAdmin && (
               <Button 
                 variant="outline" 
@@ -323,6 +391,33 @@ export default function AdminPage() {
           </div>
         </div>
       </header>
+
+      <Dialog open={isSimDialogOpen} onOpenChange={setIsSimDialogOpen}>
+        <DialogContent className="rounded-3xl border-none shadow-2xl max-w-sm">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-2xl font-black tracking-tight text-primary uppercase font-headline">Simulate Visit History</DialogTitle>
+            <DialogDescription className="text-sm font-medium">
+              Choose the visit type for the simulated <span className="font-bold text-primary">{tempSimRole}</span> user.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 py-4">
+            <Button 
+              onClick={() => finalizeSimulation("First-Time")}
+              className="h-16 rounded-2xl font-black text-lg gap-3 bg-muted hover:bg-muted/80 text-foreground border-2 border-transparent hover:border-primary/20 transition-all"
+            >
+              <Eye className="w-5 h-5" />
+              First-Time Visitor
+            </Button>
+            <Button 
+              onClick={() => finalizeSimulation("Returning")}
+              className="h-16 rounded-2xl font-black text-lg gap-3 bg-primary hover:bg-[#1A237E] shadow-xl"
+            >
+              <RotateCcw className="w-5 h-5" />
+              Returning Visitor
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <main className="max-w-7xl mx-auto p-4 py-8 space-y-6">
         {/* Main Stats Bar */}

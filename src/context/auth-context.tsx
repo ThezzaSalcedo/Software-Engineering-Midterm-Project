@@ -29,6 +29,11 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface SimulationState {
+  role: "Student" | "Faculty";
+  visitType: "First-Time" | "Returning";
+}
+
 interface AuthContextType {
   user: any;
   profile: UserProfile | null;
@@ -38,6 +43,9 @@ interface AuthContextType {
   signUpWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  simulation: SimulationState | null;
+  startSimulation: (state: SimulationState) => void;
+  stopSimulation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [simulation, setSimulation] = useState<SimulationState | null>(null);
 
   // Persistence and Redirect Result Handling
   useEffect(() => {
@@ -136,7 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     const googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ hd: 'neu.edu.ph' });
-    // Use Redirect to ensure it works in preview environment
     await signInWithRedirect(auth, googleProvider);
   };
 
@@ -155,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await signOut(auth);
     setProfile(null);
+    setSimulation(null);
   };
 
   const updateProfile = async (data: Partial<UserProfile>) => {
@@ -163,16 +172,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDocumentNonBlocking(userRef, data, { merge: true });
   };
 
+  const startSimulation = (state: SimulationState) => {
+    setSimulation(state);
+  };
+
+  const stopSimulation = () => {
+    setSimulation(null);
+  };
+
+  // Compute the effective profile (real or simulated)
+  const effectiveProfile = simulation ? {
+    ...profile,
+    id: profile?.id || "mock-id",
+    email: profile?.email || "simulated@neu.edu.ph",
+    displayName: `Simulated ${simulation.role}`,
+    role: "User" as UserRole,
+    userType: simulation.role,
+    isSetupComplete: simulation.visitType === "Returning",
+    collegeOrOffice: simulation.visitType === "Returning" ? "College of Informatics" : undefined,
+    isBlocked: false,
+  } as UserProfile : profile;
+
   return (
     <AuthContext.Provider value={{ 
       user, 
-      profile, 
+      profile: effectiveProfile, 
       loading: loading || isUserLoading, 
       login, 
       loginWithEmail,
       signUpWithEmail,
       logout, 
-      updateProfile 
+      updateProfile,
+      simulation,
+      startSimulation,
+      stopSimulation
     }}>
       {children}
     </AuthContext.Provider>

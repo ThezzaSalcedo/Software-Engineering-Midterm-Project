@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -27,7 +26,7 @@ const VISIT_REASONS = [
 ];
 
 export default function DashboardPage() {
-  const { user, profile, logout, loading } = useAuth();
+  const { user, profile, logout, loading, simulation } = useAuth();
   const db = useFirestore();
   const router = useRouter();
   const [reason, setReason] = useState("");
@@ -37,25 +36,25 @@ export default function DashboardPage() {
 
   // Query to check if the user has any previous visits
   const userVisitsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.id) return null;
+    if (!db || !profile?.id || simulation) return null;
     return query(
       collection(db, "visit_logs"),
       where("userId", "==", profile.id),
       limit(1)
     );
-  }, [db, profile?.id]);
+  }, [db, profile?.id, simulation]);
 
   const { data: userVisits, isLoading: visitsLoading } = useCollection(userVisitsQuery);
 
   useEffect(() => {
     if (!loading) {
-      if (!user) {
+      if (!user && !simulation) {
         router.push("/login");
-      } else if (profile?.role === "Admin") {
+      } else if (profile?.role === "Admin" && !simulation) {
         router.push("/admin");
       }
     }
-  }, [user, profile, loading, router]);
+  }, [user, profile, loading, router, simulation]);
 
   const handleSubmit = async () => {
     if (!reason || !profile) return;
@@ -66,6 +65,13 @@ export default function DashboardPage() {
         title: "Access Restricted",
         description: "Your library access has been temporarily blocked. Please see an administrator.",
       });
+      return;
+    }
+
+    if (simulation) {
+      setReason("");
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 5000);
       return;
     }
 
@@ -95,7 +101,7 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
-  if (loading || !user || profile?.role === "Admin") {
+  if (loading || (!user && !simulation) || (profile?.role === "Admin" && !simulation)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/20">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -103,7 +109,11 @@ export default function DashboardPage() {
     );
   }
 
-  const isFirstTime = !userVisits || userVisits.length === 0;
+  const isFirstTime = useMemo(() => {
+    if (simulation) return simulation.visitType === "First-Time";
+    return !userVisits || userVisits.length === 0;
+  }, [simulation, userVisits]);
+
   const firstName = profile?.displayName?.split(' ')[0] || "User";
 
   return (
