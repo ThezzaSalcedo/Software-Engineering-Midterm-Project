@@ -52,6 +52,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const SIM_STORAGE_KEY = "neu_lib_simulation_state";
 
+// Authorized Administrative Whitelist
+const ADMIN_EMAILS = [
+  "admin1@neu.edu.ph",
+  "jcesperanza@neu.edu.ph",
+  "zyrus.velasco@neu.edu.ph"
+];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
   const db = useFirestore();
@@ -119,8 +126,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const syncProfile = async (firebaseUser: any) => {
     const email = firebaseUser.email?.toLowerCase();
-    // Bootstrap jcesperanza@neu.edu.ph as Admin along with admin1
-    const isAdminEmail = email === "admin1@neu.edu.ph" || email === "jcesperanza@neu.edu.ph";
+    
+    // Check if user is in the Admin Whitelist
+    const isAdminEmail = ADMIN_EMAILS.includes(email || "");
     const role: UserRole = isAdminEmail ? "Admin" : "User";
 
     if (isAdminEmail) {
@@ -139,18 +147,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newProfile: UserProfile = {
         id: firebaseUser.uid,
         email: email || "",
-        displayName: firebaseUser.displayName || email?.split('@')[0] || (isAdminEmail ? "Super Admin" : "User"),
+        displayName: firebaseUser.displayName || email?.split('@')[0] || (isAdminEmail ? "Administrator" : "User"),
         photoURL: firebaseUser.photoURL || "",
         role: role,
         isBlocked: false,
-        isSetupComplete: isAdminEmail,
+        isSetupComplete: isAdminEmail, // Admins skip standard onboarding
         createdAt: new Date().toISOString(),
       };
       
       setDocumentNonBlocking(userRef, newProfile, { merge: true });
     } else {
       const existingData = userDoc.data() as UserProfile;
-      // Bootstrap Override: Update existing user to Admin if they have the bootstrap email
+      // Role Enforcement: Update existing user to Admin if they are in the whitelist
       if (isAdminEmail && existingData.role !== "Admin") {
         setDocumentNonBlocking(userRef, { 
           role: "Admin", 
