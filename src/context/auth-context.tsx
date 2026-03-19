@@ -1,10 +1,10 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { 
   GoogleAuthProvider, 
-  signInWithRedirect, 
-  getRedirectResult,
+  signInWithPopup, 
   signOut, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -83,10 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         await setPersistence(auth, browserLocalPersistence);
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          await syncProfile(result.user);
-        }
       } catch (error) {
         console.error("Auth initialization error:", error);
       }
@@ -171,7 +167,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     const googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ hd: 'neu.edu.ph' });
-    await signInWithRedirect(auth, googleProvider);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result.user) {
+        await syncProfile(result.user);
+      }
+    } catch (error) {
+      console.error("Popup login error:", error);
+      throw error;
+    }
   };
 
   const loginWithEmail = async (email: string, pass: string) => {
