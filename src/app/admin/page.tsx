@@ -171,22 +171,23 @@ export default function AdminPage() {
   const finalizeSimulation = (visitType: "First-Time" | "Returning") => {
     if (!tempSimRole) return;
     
-    // Initialize new simulation state - state updates happen in AuthProvider
+    // Set UI state to closed first to ensure cleanup
+    setIsSimDialogOpen(false);
+    
+    // Start simulation state
     startSimulation({
       role: tempSimRole,
       visitType
     });
     
-    setIsSimDialogOpen(false);
-    
-    // Explicit navigation after state push
+    // Navigation after state push
     setTimeout(() => {
       if (visitType === "First-Time") {
         router.push("/onboarding");
       } else {
         router.push("/dashboard");
       }
-    }, 50);
+    }, 100);
   };
 
   const filteredVisits = useMemo(() => {
@@ -367,7 +368,7 @@ export default function AdminPage() {
               <DropdownMenuContent align="end" className="w-48 rounded-xl border-none shadow-2xl z-[100]">
                 <DropdownMenuLabel className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Select Simulation</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { stopSimulation(); }} className="gap-2 font-bold cursor-pointer">
+                <DropdownMenuItem onClick={() => { if(simulation) stopSimulation(); }} className="gap-2 font-bold cursor-pointer">
                   <MonitorSmartphone className="w-4 h-4 text-primary" />
                   Admin (Default)
                 </DropdownMenuItem>

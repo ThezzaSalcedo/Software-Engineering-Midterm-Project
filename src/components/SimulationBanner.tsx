@@ -24,11 +24,7 @@ export function SimulationBanner() {
     // 1. Immediate cleanup of simulation state
     stopSimulation();
     
-    // 2. Clear any lingering session markers
-    sessionStorage.removeItem("neu_lib_simulation_state");
-    
-    // 3. Global Reset: Perform a hard navigation to return to Admin Dashboard
-    // This is the most reliable way to purge simulation data and unfreeze UI overlays.
+    // 2. Perform a hard navigation to return to Admin Dashboard and purge state
     window.location.href = "/admin";
   };
 
