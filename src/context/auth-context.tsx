@@ -50,6 +50,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SIM_STORAGE_KEY = "neu_lib_simulation_state";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
   const db = useFirestore();
@@ -57,6 +59,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [simulation, setSimulation] = useState<SimulationState | null>(null);
+
+  // Load simulation state from session storage on mount
+  useEffect(() => {
+    const savedSim = sessionStorage.getItem(SIM_STORAGE_KEY);
+    if (savedSim) {
+      try {
+        setSimulation(JSON.parse(savedSim));
+      } catch (e) {
+        sessionStorage.removeItem(SIM_STORAGE_KEY);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -162,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await signOut(auth);
     setProfile(null);
-    setSimulation(null);
+    stopSimulation();
   };
 
   const updateProfile = async (data: Partial<UserProfile>) => {
@@ -173,10 +187,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const startSimulation = useCallback((state: SimulationState) => {
     setSimulation(state);
+    sessionStorage.setItem(SIM_STORAGE_KEY, JSON.stringify(state));
   }, []);
 
   const stopSimulation = useCallback(() => {
     setSimulation(null);
+    sessionStorage.removeItem(SIM_STORAGE_KEY);
   }, []);
 
   // Compute the effective profile (real or simulated)

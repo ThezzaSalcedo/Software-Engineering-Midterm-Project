@@ -70,7 +70,6 @@ export default function DashboardPage() {
     if (simulation) {
       setReason("");
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 5000);
       return;
     }
 
@@ -89,7 +88,6 @@ export default function DashboardPage() {
     setReason("");
     setShowSuccess(true);
     setIsSubmitting(false);
-    setTimeout(() => setShowSuccess(false), 5000);
   };
 
   const handleLogout = async () => {
@@ -115,13 +113,13 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen flex flex-col bg-muted/20 relative">
       {showSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-primary/20 backdrop-blur-sm animate-in fade-in zoom-in duration-300 p-4">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-primary/20 backdrop-blur-sm animate-in fade-in zoom-in duration-300 p-4">
           <Card className="w-full max-w-md shadow-2xl border-none overflow-hidden text-center relative rounded-3xl">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setShowSuccess(false)}
-              className="absolute right-4 top-4 text-white hover:bg-white/20"
+              className="absolute right-4 top-4 text-white hover:bg-white/20 rounded-full"
             >
               <X className="w-6 h-6" />
             </Button>
@@ -133,8 +131,8 @@ export default function DashboardPage() {
             </div>
             <CardContent className="p-10 space-y-6">
               <h2 className="text-2xl font-bold text-primary italic font-headline">Welcome to NEU Library!</h2>
-              <p className="text-muted-foreground leading-relaxed">Your visit has been recorded successfully. Please maintain silence and follow library protocols.</p>
-              <Button onClick={() => setShowSuccess(false)} className="w-full h-14 font-black text-xl rounded-2xl shadow-lg hover:scale-105 transition-transform">
+              <p className="text-muted-foreground leading-relaxed font-medium">Your visit has been recorded successfully. Please maintain silence and follow library protocols.</p>
+              <Button onClick={() => setShowSuccess(false)} className="w-full h-14 font-black text-xl rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all">
                 Got it, thanks!
               </Button>
             </CardContent>
@@ -169,18 +167,18 @@ export default function DashboardPage() {
 
       <main className="flex-1 max-w-4xl mx-auto w-full p-4 py-8 sm:py-16 space-y-8 sm:space-y-12">
         <div className="space-y-3 text-center sm:text-left">
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-[#1A237E] font-headline">
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-[#1A237E] font-headline uppercase">
             {visitsLoading ? (
               <div className="h-10 w-48 bg-muted animate-pulse rounded-lg" />
             ) : isFirstTime ? (
               <>
                 WELCOME, <br className="hidden sm:block" />
-                <span className="text-accent italic uppercase">{firstName}!</span>
+                <span className="text-accent italic">{firstName}!</span>
               </>
             ) : (
               <>
                 WELCOME BACK, <br className="hidden sm:block" />
-                <span className="text-accent italic uppercase">{firstName}!</span>
+                <span className="text-accent italic">{firstName}!</span>
               </>
             )}
           </h2>
