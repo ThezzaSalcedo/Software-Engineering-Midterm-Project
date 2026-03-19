@@ -164,8 +164,12 @@ export default function AdminPage() {
   };
 
   const handleSimSelect = (role: "Student" | "Faculty") => {
-    setTempSimRole(role);
-    setIsSimDialogOpen(true);
+    // Small delay to ensure the dropdown menu closes fully before the dialog opens
+    // This prevents potential Radix UI focus/scroll conflicts
+    setTimeout(() => {
+      setTempSimRole(role);
+      setIsSimDialogOpen(true);
+    }, 50);
   };
 
   const finalizeSimulation = (visitType: "First-Time" | "Returning") => {
