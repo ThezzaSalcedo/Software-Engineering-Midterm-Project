@@ -27,3 +27,7 @@ Scenario Simulation: Admins can trigger "First-Time" or "Old Visitor" popups to 
 * Auth: Firebase Authentication
 
 * Icons: Lucide React
+
+# Live Link
+[NEU Library Visitor App Link](https://software-engineering-midterm-projec-ten.vercel.app/)
+
